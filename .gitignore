@@ -1,3 +1,7 @@
+#
+# R-specific files
+#
+
 # History files
 .Rhistory
 .Rapp.history
@@ -37,3 +41,19 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+#
+# project folders
+#
+
+# raw data
+raw_data/*
+
+# rshiny
+rsconnect/*
+
+# temp
+temp/*
+
+# path names
+*path_names*

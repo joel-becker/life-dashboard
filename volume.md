@@ -1,0 +1,1 @@
+Volume is calculated as the sum of estimated one-rep-maxes across sets and exercises. (Recall that I calculate estimated one-rep-max of a set as `1RM = weight * (1 + (reps / x))` with `x = 25`.)
