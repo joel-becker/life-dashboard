@@ -57,3 +57,6 @@ temp/*
 
 # path names
 *path_names*
+
+# unnecessary scripts
+charts_helper.R

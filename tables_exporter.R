@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------#
-# Produces tables
+# Exports tables by calling functions from `tables_helper.R`
 # Author: Joel Becker
 
 # Notes:
@@ -17,14 +17,18 @@ new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
 if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
+# set wd
+setwd("/Users/joel/projects/stRong")
+
 # load helper files
 source("tables_helper.R")
 source("path_names.R")
 
-# set wd
-setwd(project_path)
 
-# load data
+########################################################
+####################### Load data ######################
+########################################################
+
 exercise_data_raw <- read.csv("raw_data/strong/strong.csv")
 
 health_xml <- xmlParse("raw_data/apple_health_export/export.xml")
@@ -38,7 +42,11 @@ mentalhealth_csv <- read.csv("raw_data/mental_health/csv/entry.csv")
 print("-----")
 print("Successfully loaded raw data!")
 
-# wrangle data
+
+########################################################
+##################### Wrangle data #####################
+########################################################
+
 weight_data <- wrangle_weight_data(df_record)
 exercise_data <- wrangle_exercise_data(exercise_data_raw, weight_data)
 volume_data <- wrangle_volume_data(exercise_data)
@@ -48,7 +56,11 @@ mentalhealth_data <- wrangle_mentalhealth_data(mentalhealth_csv)
 print("-----")
 print("Successfully wrangled data!")
 
-# save data
+
+########################################################
+####################### Save data ######################
+########################################################
+
 write_csv(weight_data, file = "temp/weight_data.csv")
 write_csv(exercise_data, file = "temp/exercise_data.csv")
 write_csv(volume_data, file = "temp/volume_data.csv")

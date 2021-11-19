@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------#
-# Produces tables
+# Functions for wrangling tables
 # Author: Joel Becker
 
 # Notes:
@@ -17,13 +17,16 @@ new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
 if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
+# set wd
+setwd("/Users/joel/projects/stRong")
+
 # source
 source("path_names.R")
 
-# set wd
-setwd(project_path)
 
-# functions
+########################################################
+################## Wrangling functions #################
+########################################################
 
 clean_health_data <- function(data) {
   data <- data %>%
@@ -209,14 +212,8 @@ wrangle_volume_data <- function(data) {
 }
 
 unpack_mentalhealth_data <- function() {
-  downloads_folder <- paste0(project_path, "/../../Downloads")
-
   system(
-    paste0(
-      "mv ",
-      project_path,
-      "*.emoods* raw_data/mental_health/zip"
-    )
+    "mv /Users/joel/Downloads/*.emoods* raw_data/mental_health/zip"
   )
   system(
     "mv raw_data/mental_health/zip/*.emoods* raw_data/mental_health/zip/emoods_$(date +%F).zip"
@@ -234,8 +231,11 @@ wrangle_mentalhealth_data <- function(data) {
       # explanation for mental health metric:
       # https://www.wolframalpha.com/input/?i=0.01+*+x%5E4+-+0.01+%3D+1
       # intention is to get kind of exponential score between -1 and 1
-      mental_health = (3.1701^elevated) -
-        (3.1701^((0.1 * irritability + 0.45 * anxiety + 0.45 * depressed))),
+      mental_health = (elevated^3.3291) - (
+        (0.1 * (irritability^6.6582)) +
+          (0.45 * (anxiety^6.6582)) +
+          (0.45 * (depressed^6.6582))
+      )^0.5,
       sleep = replace(sleep, sleep == 0.0, NA),
       positive_value = case_when(
         mental_health > 0 ~ "Net positive",
