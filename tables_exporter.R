@@ -18,17 +18,13 @@ if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
 # set wd
-setwd("/Users/joel/projects/stRong")
+setwd("/Users/joel/projects/life-dashboard")
 
 # load helper files
 source("tables_helper.R")
 source("path_names.R")
 
-
-########################################################
-####################### Load data ######################
-########################################################
-
+# load data
 exercise_data_raw <- read.csv("raw_data/strong/strong.csv")
 
 health_xml <- xmlParse("raw_data/apple_health_export/export.xml")
@@ -42,11 +38,7 @@ mentalhealth_csv <- read.csv("raw_data/mental_health/csv/entry.csv")
 print("-----")
 print("Successfully loaded raw data!")
 
-
-########################################################
-##################### Wrangle data #####################
-########################################################
-
+# wrangle data
 weight_data <- wrangle_weight_data(df_record)
 exercise_data <- wrangle_exercise_data(exercise_data_raw, weight_data)
 volume_data <- wrangle_volume_data(exercise_data)
@@ -56,11 +48,7 @@ mentalhealth_data <- wrangle_mentalhealth_data(mentalhealth_csv)
 print("-----")
 print("Successfully wrangled data!")
 
-
-########################################################
-####################### Save data ######################
-########################################################
-
+# save data
 write_csv(weight_data, file = "temp/weight_data.csv")
 write_csv(exercise_data, file = "temp/exercise_data.csv")
 write_csv(volume_data, file = "temp/volume_data.csv")

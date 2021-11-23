@@ -18,15 +18,12 @@ if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
 # set wd
-setwd("/Users/joel/projects/stRong")
+setwd("/Users/joel/projects/life-dashboard")
 
 # source
 source("path_names.R")
 
-
-########################################################
-################## Wrangling functions #################
-########################################################
+# functions
 
 clean_health_data <- function(data) {
   data <- data %>%
