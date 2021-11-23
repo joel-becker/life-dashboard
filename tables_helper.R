@@ -14,7 +14,7 @@
 # load libraries
 packages <- c("tidyverse", "janitor", "lubridate", "XML")
 new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
-if(length(new.packages)) install.packages(new.packages)
+if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
 # set wd
@@ -25,13 +25,13 @@ source("path_names.R")
 
 # functions
 
-clean_health_data <- function(data){
+clean_health_data <- function(data) {
   data <- data %>%
     clean_names() %>%
     mutate(
-      device = gsub(".*(name:)|,.*", "",device),
+      device = gsub(".*(name:)|,.*", "", device),
       value = as.numeric(as.character(value)),
-      end_date = ymd_hms(end_date,tz="America/New_York"),
+      end_date = ymd_hms(end_date, tz = "America/New_York"),
       date = date(end_date),
       year = year(end_date),
       month = month(end_date),
@@ -46,7 +46,7 @@ clean_health_data <- function(data){
   return(data)
 }
 
-join_dates <- function(data){
+join_dates <- function(data) {
   dates <- data.frame(date = seq.Date(min(data$date), Sys.Date(), 1))
 
   data <- data %>%
@@ -57,10 +57,10 @@ join_dates <- function(data){
   return(data)
 }
 
-wrangle_weight_data <- function(data){
+wrangle_weight_data <- function(data) {
   data <- data %>%
     clean_health_data() %>%
-    filter(type == 'BodyMass') %>%
+    filter(type == "BodyMass") %>%
     select(date, value) %>%
     join_dates() %>%
     fill("value") %>%
@@ -72,22 +72,22 @@ wrangle_weight_data <- function(data){
   return(data)
 }
 
-wrangle_health_data <- function(data){
+wrangle_health_data <- function(data) {
   data <- data %>%
     clean_health_data()
 
   return(data)
 }
 
-wrangle_deficit_data <- function(data){
+wrangle_deficit_data <- function(data) {
   data <- data %>%
     clean_health_data() %>%
     filter(
-      end_date >= '2020/12/24' &
+      end_date >= "2020/12/24" &
         type %in% c(
-          'BasalEnergyBurned',
-          'ActiveEnergyBurned',
-          'DietaryEnergyConsumed',
+          "BasalEnergyBurned",
+          "ActiveEnergyBurned",
+          "DietaryEnergyConsumed",
           "DietarySugar",
           "DietaryProtein"
         )
@@ -103,8 +103,8 @@ wrangle_deficit_data <- function(data){
       EnergyBurned = ActiveEnergyBurned + BasalEnergyBurned,
       EnergyConsumed = DietaryEnergyConsumed,
       EnergyDeficit = EnergyBurned - EnergyConsumed,
-      EnergyDeficitPct = EnergyDeficit / EnergyBurned#,
-      #EnergyDeficitCat = if_else(EnergyDeficit > 0, 'Deficit', 'Surplus')
+      EnergyDeficitPct = EnergyDeficit / EnergyBurned # ,
+      # EnergyDeficitCat = if_else(EnergyDeficit > 0, 'Deficit', 'Surplus')
     ) %>%
     filter(EnergyConsumed > 0) %>%
     select(-c(ActiveEnergyBurned, BasalEnergyBurned, DietaryEnergyConsumed)) %>%
@@ -120,7 +120,7 @@ wrangle_deficit_data <- function(data){
   return(data)
 }
 
-clean_exercise_data <- function(data){
+clean_exercise_data <- function(data) {
   data <- data %>%
     clean_names() %>%
     mutate(date = as.Date(date)) %>%
@@ -129,7 +129,7 @@ clean_exercise_data <- function(data){
   return(data)
 }
 
-filter_exercise_data <- function(data){
+filter_exercise_data <- function(data) {
   data <- data %>%
     filter(!(date < "2020-10-01" & exercise_name == "Triceps Dip (Assisted)")) %>%
     filter(!(date < "2020-10-01" & exercise_name == "Lateral Raise (Machine)")) %>%
@@ -137,10 +137,10 @@ filter_exercise_data <- function(data){
     filter(!(date < "2020-10-01" & exercise_name == "Lat Pulldown (Cable)")) %>%
     filter(!(exercise_name == "Bicep Curl (Machine)"))
 
-  #filter(date > as.Date("2020-09-01"))
+  # filter(date > as.Date("2020-09-01"))
 }
 
-calculate_1RM <- function(data){
+calculate_1RM <- function(data) {
   unweighted_exercises <- c(
     "Chin Up",
     "Pull Up",
@@ -149,7 +149,7 @@ calculate_1RM <- function(data){
   )
 
   all_exercises <- unique(data$exercise_name)
-  barbell_exercises <- all_exercises[grepl("(Barbell)", all_exercises, fixed=TRUE)]
+  barbell_exercises <- all_exercises[grepl("(Barbell)", all_exercises, fixed = TRUE)]
 
   data <- data %>%
     mutate(
@@ -173,19 +173,19 @@ calculate_1RM <- function(data){
   #    set_order = as.character(set_order)
   #  )
   #
-  #model <- lm(
+  # model <- lm(
   #  log(one_rep_max) ~ exercise_name +
   #    log(as.numeric(as.Date(date))) +
   #    exercise_order +
   #    set_order,
   #  data
   #  )
-  #summary(model)
+  # summary(model)
 
   return(data)
 }
 
-wrangle_exercise_data <- function(data, weight_data){
+wrangle_exercise_data <- function(data, weight_data) {
   data <- data %>%
     clean_exercise_data() %>%
     filter_exercise_data() %>%
@@ -197,7 +197,7 @@ wrangle_exercise_data <- function(data, weight_data){
   return(data)
 }
 
-wrangle_volume_data <- function(data){
+wrangle_volume_data <- function(data) {
   data <- data %>%
     dplyr::group_by(date) %>%
     dplyr::summarise(volume = sum(one_rep_max)) %>%
@@ -208,7 +208,7 @@ wrangle_volume_data <- function(data){
   return(data)
 }
 
-unpack_mentalhealth_data <- function(){
+unpack_mentalhealth_data <- function() {
   system(
     "mv /Users/joel/Downloads/*.emoods* raw_data/mental_health/zip"
   )
@@ -220,7 +220,7 @@ unpack_mentalhealth_data <- function(){
   )
 }
 
-wrangle_mentalhealth_data <- function(data){
+wrangle_mentalhealth_data <- function(data) {
   data <- data %>%
     clean_names() %>%
     mutate(
@@ -229,9 +229,9 @@ wrangle_mentalhealth_data <- function(data){
       # https://www.wolframalpha.com/input/?i=0.01+*+x%5E4+-+0.01+%3D+1
       # intention is to get kind of exponential score between -1 and 1
       mental_health = (elevated^3.3291) - (
-        (0.1*(irritability^6.6582)) +
-          (0.45*(anxiety^6.6582)) +
-          (0.45*(depressed^6.6582))
+        (0.1 * (irritability^6.6582)) +
+          (0.45 * (anxiety^6.6582)) +
+          (0.45 * (depressed^6.6582))
       )^0.5,
       sleep = replace(sleep, sleep == 0.0, NA),
       positive_value = case_when(
@@ -243,10 +243,10 @@ wrangle_mentalhealth_data <- function(data){
     select(-c(
       id,
       date_yyyy_mm_dd,
-      #elevated,
-      #irritability,
-      #anxiety,
-      #depressed,
+      # elevated,
+      # irritability,
+      # anxiety,
+      # depressed,
       psychotic_symptoms,
       note,
       menstrual_cycle,
@@ -254,6 +254,6 @@ wrangle_mentalhealth_data <- function(data){
     ))
 }
 
-wrangle_sleep_data <- function(data){
+wrangle_sleep_data <- function(data) {
 
 }
