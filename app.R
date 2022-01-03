@@ -31,6 +31,13 @@ library("tidyquant") # plot moving averages
 library("janitor") # clean variable names
 library("zoo")
 library("rlang") # quote variables
+library("vars") # VARs
+library(devtools) # extract_varirf fn
+source_url(paste0(
+  "https://raw.githubusercontent.com/anguyen1210/",
+  "var-tools/master/R/extract_varirf.R"
+  ))
+
 
 # load helper files
 # source("charts_helper.R")
@@ -42,14 +49,18 @@ options(shiny.autoload.r = FALSE)
 # load data
 if (!("exercise_data.csv" %in% list.files("temp")) ||
     !("volume_data.csv" %in% list.files("temp")) ||
-    !("diet_data.csv" %in% list.files("temp")) ||
-    !("mentalhealth_data.csv" %in% list.files("temp"))) {
+    !("energy_data.csv" %in% list.files("temp")) ||
+    !("nutrition_data.csv" %in% list.files("temp")) ||
+    !("mentalhealth_data.csv" %in% list.files("temp")) ||
+    !("VAR_data.csv" %in% list.files("temp"))) {
   source("tables_exporter.R")
 } else {
   exercise_data <- read_csv("temp/exercise_data.csv")
   volume_data <- read_csv("temp/volume_data.csv")
-  diet_data <- read_csv("temp/diet_data.csv")
+  energy_data <- read_csv("temp/energy_data.csv")
+  nutrition_data <- read_csv("temp/nutrition_data.csv")
   mentalhealth_data <- read_csv("temp/mentalhealth_data.csv")
+  VAR_data <- read_csv("temp/VAR_data.csv")
 }
 
 # button_color_css <- "
@@ -79,7 +90,7 @@ generate_lags <- function(var, n=10){
   
   indices <- seq_len(n)
   map( indices, ~quo(lag(!!var, !!.x)) ) %>% 
-    set_names(sprintf("%s_lag_%02d", quo_text(var), indices))
+    set_names(sprintf("%s lag %02d", quo_text(var), indices))
   
 }
 
@@ -91,7 +102,42 @@ semipseudolog_trans <- function(base) {
     domain    = c(-Inf,Inf))
 }
 
-
+#custom_date_axis <- function(data) {
+#  interval_length <- interval(ymd(min(data$date)), ymd(max(data$date)))
+#  interval_duration_months <- interval_length %/% months(1)
+#  
+#  # how long is between approximately 6 break points?
+#  months_between_breaks <- ceiling(interval_duration_months / 6)
+#  
+#  first_date_month <- month(min(data$date))
+#  first_date_year  <- year(min(data$date))
+#  first_date       <- ymd(paste0(first_date_year, "-", first_date_month, "-01"))
+#  last_date_month  <- month(max(data$date))
+#  last_date_year   <- year(max(data$date))
+#  last_date        <- ymd(paste0(last_date_year, "-", last_date_month, "-01"))
+#  
+#  breaks <- seq(
+#    first_date,
+#    last_date,
+#    by = paste0(months_between_breaks, " month")
+#    #length.out = 8
+#  )
+#  
+#  interval_endseq_to_lastdate <- interval(
+#    max(breaks), last_date
+#    ) %/% months(1)
+#  
+#  breaks <- breaks + months(interval_endseq_to_lastdate)
+#  
+#  labels = c(
+#    paste0(c(
+#      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+#      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+#      " '21")
+#  )
+#  
+#  return(breaks)
+#}
 
 ui <- fluidPage(
   # theme
@@ -121,10 +167,11 @@ ui <- fluidPage(
               label = "Choose exercises",
               exercise_data %>%
                 add_count(exercise_name) %>%
-                group_by(exercise_name) %>%
-                mutate(last_exercise = last(date)) %>%
+                dplyr::group_by(exercise_name) %>%
+                dplyr::mutate(last_exercise = max(date)) %>%
                 ungroup() %>%
-                filter(n >= 50 & last_exercise > Sys.Date() - months(6)) %>%
+                filter(n >= 40) %>%
+                #filter(n >= 40 & last_exercise > Sys.Date() - months(6)) %>%
                 arrange(desc(n)) %>%
                 pull(exercise_name) %>%
                 unique(),
@@ -162,6 +209,15 @@ ui <- fluidPage(
               step = 0.01
             ),
             radioButtons(
+              "volume_metric",
+              label = "Choose volume metric",
+              choices = c(
+                "Aggregate 1RM" = "volume",
+                "Aggregated hypertrophy-adjusted 1RM" = "hypertrophy_adjusted_volume"
+              ),
+              selected = "volume"
+            ),
+            radioButtons(
               "radiobuttons_calories",
               label = "Include cardio calories",
               choices = c("Yes" = "Yes", "No" = "No"),
@@ -169,7 +225,7 @@ ui <- fluidPage(
             )
           ),
           mainPanel(
-            h1("Rolling average volume"),
+            h1("Volume"),
             plotOutput(
               "volume_plot" # ,
               # width = 8
@@ -179,39 +235,82 @@ ui <- fluidPage(
         )
       )
     ),
-    tabPanel(
+    ## correlations sub-menu
+    navbarMenu(
       "Diet",
-      fluid = TRUE,
       icon = icon("utensils"),
-      sidebarLayout(
-        sidebarPanel(
-          titlePanel("Options"),
-          selectInput(
-            "diet_metric",
-            label = "Choose diet metric",
-            c(
-              diet_data %>%
-                pull(metric) %>%
-                unique()
+      
+      ### high-level energy
+      tabPanel(
+        "Energy",
+        fluid = TRUE,
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Options"),
+            selectInput(
+              "energy_metric",
+              label = "Choose energy metric",
+              c(
+                energy_data %>%
+                  pull(metric) %>%
+                  unique()
+              ),
+              selected = "Calorie deficit (absolute)"
             ),
-            selected = "EnergyDeficit"
+            numericInput(
+              "rollavg_length_energy",
+              label = "Exponential mean hyperparameter value",
+              value = 0.15,
+              min = 0.01,
+              max = 1,
+              step = 0.01
+            )
           ),
-          numericInput(
-            "rollavg_length_diet",
-            label = "Exponential mean hyperparameter value",
-            value = 0.2,
-            min = 0.01,
-            max = 1,
-            step = 0.01
+          mainPanel(
+            h1("Energy"),
+            plotOutput(
+              "energy_plot" # ,
+              # width = 8
+            ),
+            includeMarkdown("energy.md")
           )
-        ),
-        mainPanel(
-          h1("Diet metrics"),
-          plotOutput(
-            "diet_plot" # ,
-            # width = 8
+        )
+      ),
+      tabPanel(
+        "Nutrition",
+        fluid = TRUE,
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Nutrition"),
+            selectInput(
+              "nutrition_metric",
+              label = "Choose nutrition variable",
+              c(
+                nutrition_data %>%
+                  pull(metric) %>%
+                  unique()
+              ),
+              multiple = FALSE,
+              selected = "Protein"
+            ),
+            numericInput(
+              "rollavg_length_nutrition",
+              label = "Exponential mean hyperparameter value",
+              value = 0.15,
+              min = 0.01,
+              max = 1,
+              step = 0.01
+            )
           ),
-          includeMarkdown("diet.md")
+          mainPanel(
+            h1("Nutrition plot"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "nutrition_plot"
+              )
+            )
+          )
         )
       )
     ),
@@ -232,7 +331,7 @@ ui <- fluidPage(
           )
         ),
         mainPanel(
-          h1("Mental health metrics"),
+          h1("Mental health"),
           div(
             style = "position:relative",
             plotOutput(
@@ -249,28 +348,66 @@ ui <- fluidPage(
         )
       )
     ),
-    tabPanel(
-      "Life correlations",
-      fluid = TRUE,
+    ## correlations sub-menu
+    navbarMenu(
+      "Correlations",
       icon = icon("yin-yang"),
-      sidebarLayout(
-        sidebarPanel(
-          titlePanel("Test"),
-          numericInput(
-            "lifecorrelations_numberlags",
-            label = "Number of lags of selected variables",
-            value = 0,
-            min = 0,
-            max = 10,
-            step = 1
+      
+      ### correlations
+      tabPanel(
+        "Life correlations",
+        fluid = TRUE,
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Test"),
+            numericInput(
+              "lifecorrelations_numberlags",
+              label = "Number of lags of selected variables",
+              value = 0,
+              min = 0,
+              max = 10,
+              step = 1
+            )
+          ),
+          mainPanel(
+            h1("Correlation between life aspects"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "corr_plot"
+              )
+            )
           )
-        ),
-        mainPanel(
-          h1("Correlations"),
-          div(
-            style = "position:relative",
-            plotOutput(
-              "corr_plot"
+        )
+      ),
+      tabPanel(
+        "Impulse response",
+        fluid = TRUE,
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Impulse response function variables"),
+            selectInput(
+              "VAR_impulse",
+              label = "Choose impulse variable",
+              VAR_data %>% names(),
+              multiple = FALSE,
+              selected = "mental_health"
+            ),
+            selectInput(
+              "VAR_response",
+              label = "Choose response variable",
+              VAR_data %>% names(),
+              multiple = FALSE,
+              selected = "volume"
+            )
+          ),
+          mainPanel(
+            h1("Impulse response function"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "VAR_plot"
+              )
             )
           )
         )
@@ -278,14 +415,15 @@ ui <- fluidPage(
     )
   )
 )
+
 server <- function(input, output) {
   output$onerepmax_plot <- renderPlot({
-    data <- exercise_data %>%
-      group_by(exercise_name) %>%
-      mutate(first_one_rep_max = first(one_rep_max)) %>%
-      ungroup() %>%
-      filter(one_rep_max >= (2/3) * first_one_rep_max) %>%
-      select(date, exercise_name, one_rep_max, cummax_one_rep_max)
+    #data <- exercise_data %>%
+    #  group_by(exercise_name) %>%
+    #  mutate(first_one_rep_max = first(one_rep_max)) %>%
+    #  ungroup() %>%
+    #  filter(one_rep_max >= (2/3) * first_one_rep_max) %>%
+    #  select(date, exercise_name, one_rep_max, cummax_one_rep_max)
     exercise_names <- input$exercise_name
     radiobuttons_expscale <- input$radiobuttons_expscale
     
@@ -293,7 +431,7 @@ server <- function(input, output) {
       exercise_names <- c("Bench Press (Barbell)", "Chin Up")
     }
     
-    filtered_data <- data %>%
+    filtered_data <- exercise_data %>%
       filter(exercise_name %in% exercise_names)
     
     plot <- ggplot(
@@ -310,14 +448,18 @@ server <- function(input, output) {
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"),
         aesthetics = c("colour", "fill")
       ) +
+      #scale_x_date(
+      #  breaks = as.Date(c(
+      #    "2020-10-01",
+      #    "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
+      #  )),
+      #  labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
+      #  limits = c(min(filtered_data$date), max(filtered_data$date)) # ,
+      #  # title("Date")
+      #) +
       scale_x_date(
-        breaks = as.Date(c(
-          "2020-10-01",
-          "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
-        )),
-        labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
-        limits = c(min(filtered_data$date), max(filtered_data$date)) # ,
-        # title("Date")
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y"
       ) +
       scale_y_continuous(
         breaks = seq(0, 400, round_any(max(filtered_data$one_rep_max) / 16, 8, f = ceiling))
@@ -337,8 +479,7 @@ server <- function(input, output) {
         legend.key.size = unit(2, "cm"), # change legend key size
         legend.key.height = unit(2, "cm"), # change legend key height
         legend.key.width = unit(2, "cm"), # change legend key width
-        legend.text = element_text(size = 14),
-        panel.grid.minor.x = element_blank() # ,
+        legend.text = element_text(size = 14)
         # panel.grid.minor.y = element_blank()
       ) +
       guides(
@@ -364,26 +505,32 @@ server <- function(input, output) {
   output$volume_plot <- renderPlot({
     data <- volume_data
     rollavg_length_volume <- input$rollavg_length_volume
+    metric_name <- input$volume_metric
     include_cardio_calories <- input$radiobuttons_calories
     
     if (include_cardio_calories == "Yes") {
       data <- data %>%
-        mutate(volume = volume + (total_energy_burned * 3))
+        mutate(
+          value = value + (total_energy_burned * 3)
+          )
     }
     
     plot <- data %>%
+      filter(
+        metric %in% metric_name
+      ) %>%
       mutate(
         exp_moving_avg = map_dbl(
           date,
           function(d) rolling_weighted_average(
-            volume,
+            value,
             date,
             d,
             epsilon = rollavg_length_volume
           )
         )
       ) %>%
-      ggplot(aes(x = date, y = volume)) +
+      ggplot(aes(x = date, y = value)) +
       geom_col(alpha = 1 / 3, fill = "#1b9e77") +
       geom_line(
         aes(x = date, y = exp_moving_avg),
@@ -394,23 +541,27 @@ server <- function(input, output) {
       scale_fill_manual(
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
+      #scale_x_date(
+      #  breaks = as.Date(c(
+      #    "2020-10-01",
+      #    "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
+      #  )),
+      #  labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
+      #  limits = c(min(data$date), max(data$date)),
+      #  expand = c(0, 0)
+      #  # title("Date")
+      #) +
       scale_x_date(
-        breaks = as.Date(c(
-          "2020-10-01",
-          "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
-        )),
-        labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
-        limits = c(min(data$date), max(data$date)),
-        expand = c(0, 0)
-        # title("Date")
-      ) +
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+        ) +
       scale_y_continuous(
         # trans=scales::pseudo_log_trans(base = 2),
         expand = c(0, 0)
       ) +
       
       # ylim(min(data$value) - 1, max(data$value) + 1) +
-      labs(y = "Volume (in estimated one-rep-max lb units)") +
       theme_minimal() +
       theme(
         axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1),
@@ -419,18 +570,26 @@ server <- function(input, output) {
         axis.title.x = element_blank(),
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 24),
-        legend.title = element_blank(),
-        panel.grid.minor.x = element_blank() # ,
+        legend.title = element_blank()
+        #panel.grid.minor.x = element_blank() # ,
         # panel.grid.minor.y = element_blank()
       )
+    
+    if (metric_name == "volume") {
+      plot <- plot +
+        labs(y = "Volume (in estimated one-rep-max lb units)")
+    } else if (metric_name == "hypertrophy_adjusted_volume") {
+      plot <- plot +
+        labs(y = "Hypertrophy-adjusted volume")
+    }
     
     return(plot)
   })
   
-  output$diet_plot <- renderPlot({
-    data <- diet_data
-    metric_names <- input$diet_metric
-    rollavg_length_diet <- input$rollavg_length_diet
+  output$energy_plot <- renderPlot({
+    data <- energy_data
+    metric_names <- input$energy_metric
+    rollavg_length_energy <- input$rollavg_length_energy
     
     data <- data %>%
       filter(
@@ -445,7 +604,7 @@ server <- function(input, output) {
             value,
             date,
             d,
-            epsilon = rollavg_length_diet
+            epsilon = rollavg_length_energy
           )
         )
       ) %>%
@@ -462,62 +621,184 @@ server <- function(input, output) {
     plot <- data %>%
       ggplot(aes(x = date, y = value))
     
-    if ("EnergyDeficitPct" %in% metric_names) {
+    if ("Calorie deficit (relative)" %in% metric_names) {
       plot <- data %>%
         ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(alpha = 1 / 3) +
-        labs(y = "Proportional calorie deficit/surplus") +
+        geom_col(alpha = 1 / 3)
+    } else if ("Calorie deficit (absolute)" %in% metric_names) {
+      plot <- data %>%
+        ggplot(aes(x = date, y = value, fill = positive_value)) +
+        geom_col(alpha = 1 / 3)
+    } else if ("Protein" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Sugar" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Calorie expenditure" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Calorie intake" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    }
+    
+    plot <- plot +
+      geom_line(
+        aes(
+          y = exp_moving_avg,
+          fill = NULL
+        ),
+        size = 1,
+        colour = "#7570b3"
+      ) +
+      
+      scale_fill_manual(
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
+      ) +
+      #scale_x_date(
+      #  breaks = as.Date(c(
+      #    paste0("2021-", c(paste0("0", 1:9), paste0(10:12)), "-01")
+      #  )),
+      #  labels = c(
+      #    paste0(c(
+      #      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      #      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+      #      " '21")
+      #  ),
+      #  limits = c(min(data_without_NA$date), max(data_without_NA$date)),
+      #  expand = c(0, 0)
+      #  # title("Date")
+      #) +
+      scale_x_date(
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+      ) +
+      
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14),
+        # axis.title.x = element_text(size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.key.size = unit(1.5, "cm"), # change legend key size
+        legend.key.height = unit(1, "cm"), # change legend key height
+        legend.key.width = unit(1.5, "cm"), # change legend key width
+        legend.text = element_text(size = 14)
+      )
+    
+    if ("Calorie deficit (relative)" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Percentage calorie deficit/surplus") +
         scale_y_continuous(
-          #labels = scales::percent_format(accuracy = 1),
           labels = scales::percent,
           breaks = seq(-1, 1, 0.2),
           expand = c(0, 0)
         )
-    } else if ("EnergyDeficit" %in% metric_names) {
-      plot <- data %>%
-        ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(alpha = 1 / 3) +
+    } else if ("Calorie deficit (absolute)" %in% metric_names) {
+      plot <- plot +
         labs(y = "Calorie deficit/surplus") +
         scale_y_continuous(
           breaks = seq(-1500, 1500, 500),
           expand = c(0, 0)
         )
-    } else if ("DietaryProtein" %in% metric_names) {
+    } else if ("Protein" %in% metric_names) {
       plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
-        labs(y = "Protein consumed") +
-        theme(legend.position = "none") +
+        labs(y = "Protein consumed (grams)") +
         scale_y_continuous(
           breaks = seq(0, 300, 50),
           expand = c(0, 0)
         )
-    } else if ("DietarySugar" %in% metric_names) {
+    } else if ("Sugar" %in% metric_names) {
       plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
-        labs(y = "Sugar consumed") +
-        theme(legend.position = "none") +
+        labs(y = "Sugar consumed (grams)") +
         scale_y_continuous(
           breaks = seq(0, 300, 50),
           expand = c(0, 0)
         )
-    } else if ("EnergyBurned" %in% metric_names) {
+    } else if ("Calorie expenditure" %in% metric_names) {
       plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
         labs(y = "Calories burned") +
-        theme(legend.position = "none") +
         scale_y_continuous(
           breaks = seq(0, 4500, 1000),
           expand = c(0, 0)
         )
-    } else if ("EnergyConsumed" %in% metric_names) {
+    } else if ("Calorie intake" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Calories consumed") +
+        scale_y_continuous(
+          breaks = seq(0, 4500, 1000),
+          expand = c(0, 0)
+        )
+    }
+    
+    return(plot)
+  })
+  
+  output$nutrition_plot <- renderPlot({
+    data <- nutrition_data
+    metric_names <- input$nutrition_metric
+    rollavg_length_nutrition <- input$rollavg_length_nutrition
+    
+    data <- data %>%
+      filter(
+        metric %in% metric_names
+      ) %>%
+      drop_na(value) %>%
+      mutate(
+        value = as.numeric(value),
+        exp_moving_avg = map_dbl(
+          date,
+          function(d) rolling_weighted_average(
+            value,
+            date,
+            d,
+            epsilon = rollavg_length_nutrition
+          )
+        )
+      ) %>%
+      full_join(
+        data.frame(
+          date = seq(min(.$date), max(.$date), by = "days")
+        ),
+        by = "date"
+      )
+    
+    data_without_NA <- data %>%
+      filter(!is.na(value))
+    
+    plot <- data %>%
+      ggplot(aes(x = date, y = value))
+    
+    if ("Protein" %in% metric_names) {
       plot <- plot +
         geom_col(alpha = 1 / 3, fill = "#1b9e77") +
-        labs(y = "Calories consumed") +
-        theme(legend.position = "none") +
-        scale_y_continuous(
-          breaks = seq(0, 4500, 1000),
-          expand = c(0, 0)
-        )
+        theme(legend.position = "none")
+    } else if ("Sugar" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Fat" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Carbohydrates" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
+    } else if ("Water" %in% metric_names) {
+      plot <- plot +
+        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        theme(legend.position = "none")
     }
     
     plot <- plot +
@@ -534,18 +815,9 @@ server <- function(input, output) {
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
       scale_x_date(
-        breaks = as.Date(c(
-          paste0("2021-", c(paste0("0", 1:9), paste0(10:12)), "-01")
-        )),
-        labels = c(
-          paste0(c(
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-            " '21")
-        ),
-        limits = c(min(data_without_NA$date), max(data_without_NA$date)),
-        expand = c(0, 0)
-        # title("Date")
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
       ) +
       
       theme_minimal() +
@@ -561,23 +833,52 @@ server <- function(input, output) {
         legend.key.size = unit(1.5, "cm"), # change legend key size
         legend.key.height = unit(1, "cm"), # change legend key height
         legend.key.width = unit(1.5, "cm"), # change legend key width
-        legend.text = element_text(size = 14),
-        panel.grid.minor.x = element_blank()
+        legend.text = element_text(size = 14)
       )
+    
+    if ("Protein" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Protein consumed (grams)") +
+        scale_y_continuous(
+          breaks = seq(0, 300, 50),
+          expand = c(0, 0)
+        )
+    } else if ("Sugar" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Sugar consumed (grams)") +
+        scale_y_continuous(
+          breaks = seq(0, 300, 50),
+          expand = c(0, 0)
+        )
+    } else if ("Fat" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Fat consumed (grams)") +
+        scale_y_continuous(
+          breaks = seq(0, 300, 50),
+          expand = c(0, 0)
+        )
+    } else if ("Carbohydrates" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Carbohydrates consumed (grams)") +
+        scale_y_continuous(
+          breaks = seq(0, 800, 100),
+          expand = c(0, 0)
+        )
+    } else if ("Water" %in% metric_names) {
+      plot <- plot +
+        labs(y = "Water consumed (ml)") +
+        scale_y_continuous(
+          breaks = seq(0, 6000, 1000),
+          expand = c(0, 0)
+        )
+    }
     
     return(plot)
   })
   
   output$mentalhealth_plot <- renderPlot({
     data <- mentalhealth_data
-    # metric_names <- input$diet_metric
     rollavg_length_mentalhealth <- input$rollavg_length_mentalhealth
-    
-    # data <- data %>%
-    #  filter(
-    #    metric %in% metric_names &
-    #      !is.na(value)
-    #  )
     
     plot <- data %>%
       mutate(
@@ -612,18 +913,9 @@ server <- function(input, output) {
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
       scale_x_date(
-        breaks = as.Date(c(
-          paste0("2021-", c(paste0("0", 1:9), paste0(10:12)), "-01")
-        )),
-        labels = c(
-          paste0(c(
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-            " '21")
-        ),
-        limits = c(min(data$date), max(data$date)),
-        title("Date"),
-        expand = c(0, 0)
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
       ) +
       scale_y_continuous(
         lim = c(-100, 100),
@@ -645,8 +937,7 @@ server <- function(input, output) {
         legend.key.size = unit(1.5, "cm"), # change legend key size
         legend.key.height = unit(1, "cm"), # change legend key height
         legend.key.width = unit(1.5, "cm"), # change legend key width
-        legend.text = element_text(size = 14),
-        panel.grid.minor.x = element_blank()
+        legend.text = element_text(size = 14)
       )
     
     return(plot)
@@ -663,19 +954,27 @@ server <- function(input, output) {
     # https://stackoverflow.com/questions/57861765/reorder-axis-labels-of-correlation-matrix-plot
     lifecorrelations_numberlags <- input$lifecorrelations_numberlags
     
-    # gather data together
-    data <- diet_data %>%
+    energy_data <- energy_data %>%
       pivot_wider(
         names_from = "metric",
         values_from = "value"
-      ) %>%
+      )
+    
+    volume_data <- volume_data %>%
+      pivot_wider(
+        names_from = "metric",
+        values_from = "value"
+      )
+    
+    # gather data together
+    data <- energy_data %>%
       full_join(mentalhealth_data, by = "date") %>%
       full_join(volume_data, by = "date")
     
     # plot correlation plot
     
     plot <- data %>%
-      select(
+      dplyr::select(
         irritability,
         anxiety,
         depressed,
@@ -683,18 +982,18 @@ server <- function(input, output) {
         sleep,
         mental_health,
         volume,
-        EnergyBurned,
-        EnergyConsumed,
-        EnergyDeficit,
-        DietaryProtein,
-        DietarySugar
+        "Calorie expenditure",
+        "Calorie intake",
+        "Calorie deficit (absolute)"#,
+        #Protein,
+        #Sugar
       ) %>%
       mutate(
         !!!generate_lags(sleep, lifecorrelations_numberlags),
         !!!generate_lags(mental_health, lifecorrelations_numberlags),
         !!!generate_lags(volume, lifecorrelations_numberlags),
-        !!!generate_lags(EnergyBurned, lifecorrelations_numberlags),
-        !!!generate_lags(EnergyConsumed, lifecorrelations_numberlags)
+        !!!generate_lags("Calorie expenditure", lifecorrelations_numberlags),
+        !!!generate_lags("Calorie intake", lifecorrelations_numberlags)
       ) %>%
       relocate(
         contains("sleep"),
@@ -704,11 +1003,11 @@ server <- function(input, output) {
         contains("depressed"),
         contains("elevated"),
         contains("volume"),
-        contains("EnergyBurned"),
-        contains("EnergyConsumed"),
-        contains("EnergyDeficit"),
-        contains("DietaryProtein"),
-        contains("DietarySugar")
+        contains("Calorie expenditure"),
+        contains("Calorie intake"),
+        contains("Calorie deficit (absolute)")#,
+        #contains("Protein"),
+        #contains("Sugar")
       ) %>%
       cor(use = "complete.obs") %>%
       ggcorrplot(
@@ -717,11 +1016,54 @@ server <- function(input, output) {
         #hc.order = TRUE,
         #type = "lower"#,
         #p.mat = p.mat
-        )
+      )
     
     return(plot)
   })
   
+  output$VAR_plot <- renderPlot({
+    VAR_impulse <- input$VAR_impulse
+    VAR_response <- input$VAR_response
+    
+    VAR <- VAR(VAR_data, type = "both")
+    irf <- irf(
+      VAR,
+      impulse = VAR_impulse,
+      response = VAR_response,
+      n.ahead = 7,
+      ortho = TRUE,
+      cumulative = FALSE,
+      boot = TRUE,
+      ci = 0.8,
+      runs = 100
+    )
+    irf <- extract_varirf(irf)
+    
+    VAR_impulse <- tolower(VAR_impulse)
+    VAR_response <- tolower(VAR_response)
+    y <- paste0("irf_", VAR_impulse, "_", VAR_response)
+    ymin <- paste0("lower_", VAR_impulse, "_", VAR_response)
+    ymax <- paste0("upper_", VAR_impulse, "_", VAR_response)
+    
+    plot <- irf %>% 
+      ggplot(aes_string(
+        x = "period",
+        y = y,
+        ymin = ymin,
+        ymax = ymax
+      )) +
+      geom_hline(yintercept = 0, color="grey") +
+      geom_ribbon(fill = "#1b9e77", alpha=0.2) +
+      geom_line(color = "#1b9e77") +
+      theme_minimal() +
+      ggtitle(paste0("Orthogonal impulse response, ", VAR_impulse, " - ", VAR_response)) +
+      ylab(paste0("Response: ", VAR_response)) +
+      xlab("Period") +
+      theme(plot.title = element_text(size = 11, hjust=0.5),
+            axis.title.y = element_text(size=11))
+    
+    plot
+  })
   
   #output$hover_info <- renderUI({
   #  hover <- input$plot_hover

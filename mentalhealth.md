@@ -4,9 +4,8 @@ The (obviously arbitrary!) metric used is
 
 ```
 mental_health = (elevated^2.8675) - (
-        (0.1*(irritability^6.6582)) +
-          (0.45*(anxiety^6.6582)) +
-          (0.45*(depressed^6.6582))
+          (0.5*(anxiety^6.6582)) +
+          (0.5*(depressed^6.6582))
         )^0.5
 ```
 
