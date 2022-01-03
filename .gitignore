@@ -46,6 +46,9 @@ vignettes/*.pdf
 # project folders
 #
 
+# google analytics
+*analytics*
+
 # docker files
 *ocker*
 

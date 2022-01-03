@@ -140,6 +140,9 @@ semipseudolog_trans <- function(base) {
 #}
 
 ui <- fluidPage(
+  # tags
+  tags$head(includeHTML(("google-analytics.html"))),
+
   # theme
   theme = bs_theme(version = 4, bootswatch = "minty"),
   
