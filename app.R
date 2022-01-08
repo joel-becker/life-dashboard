@@ -26,7 +26,6 @@ library("bslib") # minty theme
 library("markdown")
 library("tidyverse")
 library("lubridate") # handling dates
-#library("slider") # slider functions
 library("tidyquant") # plot moving averages
 library("janitor") # clean variable names
 library("zoo")
@@ -130,6 +129,8 @@ ui <- fluidPage(
           )
         )
       ),
+
+      ### volume
       tabPanel(
         "Volume",
         fluid = TRUE,
@@ -171,6 +172,7 @@ ui <- fluidPage(
         )
       )
     ),
+
     ## correlations sub-menu
     navbarMenu(
       "Diet",
@@ -212,6 +214,8 @@ ui <- fluidPage(
           )
         )
       ),
+
+      ### low-level nutrition
       tabPanel(
         "Nutrition",
         fluid = TRUE,
@@ -250,6 +254,8 @@ ui <- fluidPage(
         )
       )
     ),
+
+    ## mental health sub-menu
     tabPanel(
       "Mental health",
       fluid = TRUE,
@@ -284,6 +290,7 @@ ui <- fluidPage(
         )
       )
     ),
+
     ## correlations sub-menu
     navbarMenu(
       "Correlations",
@@ -316,6 +323,8 @@ ui <- fluidPage(
           )
         )
       ),
+
+      ### VAR
       tabPanel(
         "Impulse response",
         fluid = TRUE,
@@ -358,13 +367,9 @@ ui <- fluidPage(
 ########################################################
 
 server <- function(input, output) {
+
+  # onerepmax plot
   output$onerepmax_plot <- renderPlot({
-    #data <- exercise_data %>%
-    #  group_by(exercise_name) %>%
-    #  mutate(first_one_rep_max = first(one_rep_max)) %>%
-    #  ungroup() %>%
-    #  filter(one_rep_max >= (2/3) * first_one_rep_max) %>%
-    #  select(date, exercise_name, one_rep_max, cummax_one_rep_max)
     exercise_names <- input$exercise_name
     radiobuttons_expscale <- input$radiobuttons_expscale
     
@@ -381,7 +386,6 @@ server <- function(input, output) {
     ) +
       geom_line(aes(y = cummax_one_rep_max), size = 1.5) +
       geom_point(size = 3, alpha = 1 / 3) +
-      # geom_line(stat="smooth", method = "lm", formula = y ~ poly(x, 2), se=FALSE, size=1.5, alpha=1/3) +
       
       ylim(0, NA) +
       ylab("Estimated one-rep-max (lbs)") +
@@ -389,15 +393,6 @@ server <- function(input, output) {
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"),
         aesthetics = c("colour", "fill")
       ) +
-      #scale_x_date(
-      #  breaks = as.Date(c(
-      #    "2020-10-01",
-      #    "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
-      #  )),
-      #  labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
-      #  limits = c(min(filtered_data$date), max(filtered_data$date)) # ,
-      #  # title("Date")
-      #) +
       scale_x_date(
         date_minor_breaks = "1 month",
         date_labels =  "%b %Y"
@@ -411,7 +406,6 @@ server <- function(input, output) {
       theme(
         axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1),
         axis.text.y = element_text(size = 12),
-        # axis.title.x = element_text(size = 14),
         axis.title.x = element_blank(),
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 24),
@@ -421,7 +415,6 @@ server <- function(input, output) {
         legend.key.height = unit(2, "cm"), # change legend key height
         legend.key.width = unit(2, "cm"), # change legend key width
         legend.text = element_text(size = 14)
-        # panel.grid.minor.y = element_blank()
       ) +
       guides(
         color = guide_legend(
@@ -443,6 +436,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # volume plot
   output$volume_plot <- renderPlot({
     data <- volume_data
     rollavg_length_volume <- input$rollavg_length_volume
@@ -482,16 +476,6 @@ server <- function(input, output) {
       scale_fill_manual(
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
-      #scale_x_date(
-      #  breaks = as.Date(c(
-      #    "2020-10-01",
-      #    "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01"
-      #  )),
-      #  labels = c("Oct '20", "Jan '21", "Apr '21", "Jul '21", "Oct '21"),
-      #  limits = c(min(data$date), max(data$date)),
-      #  expand = c(0, 0)
-      #  # title("Date")
-      #) +
       scale_x_date(
         date_minor_breaks = "1 month",
         date_labels =  "%b %Y",
@@ -502,18 +486,14 @@ server <- function(input, output) {
         expand = c(0, 0)
       ) +
       
-      # ylim(min(data$value) - 1, max(data$value) + 1) +
       theme_minimal() +
       theme(
         axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1),
         axis.text.y = element_text(size = 12),
-        # axis.title.x = element_text(size = 14),
         axis.title.x = element_blank(),
         axis.title.y = element_text(size = 14),
         plot.title = element_text(size = 24),
         legend.title = element_blank()
-        #panel.grid.minor.x = element_blank() # ,
-        # panel.grid.minor.y = element_blank()
       )
     
     if (metric_name == "volume") {
@@ -527,6 +507,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # energy plot
   output$energy_plot <- renderPlot({
     data <- energy_data
     metric_names <- input$energy_metric
@@ -601,20 +582,6 @@ server <- function(input, output) {
       scale_fill_manual(
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
-      #scale_x_date(
-      #  breaks = as.Date(c(
-      #    paste0("2021-", c(paste0("0", 1:9), paste0(10:12)), "-01")
-      #  )),
-      #  labels = c(
-      #    paste0(c(
-      #      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      #      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-      #      " '21")
-      #  ),
-      #  limits = c(min(data_without_NA$date), max(data_without_NA$date)),
-      #  expand = c(0, 0)
-      #  # title("Date")
-      #) +
       scale_x_date(
         date_minor_breaks = "1 month",
         date_labels =  "%b %Y",
@@ -625,7 +592,6 @@ server <- function(input, output) {
       theme(
         axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
         axis.text.y = element_text(size = 14),
-        # axis.title.x = element_text(size = 14),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         plot.title = element_text(size = 24),
@@ -685,6 +651,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # nutrition plot
   output$nutrition_plot <- renderPlot({
     data <- nutrition_data
     metric_names <- input$nutrition_metric
@@ -765,7 +732,6 @@ server <- function(input, output) {
       theme(
         axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
         axis.text.y = element_text(size = 14),
-        # axis.title.x = element_text(size = 14),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         plot.title = element_text(size = 24),
@@ -817,6 +783,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # mental health plot
   output$mentalhealth_plot <- renderPlot({
     data <- mentalhealth_data
     rollavg_length_mentalhealth <- input$rollavg_length_mentalhealth
@@ -869,7 +836,6 @@ server <- function(input, output) {
       theme(
         axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
         axis.text.y = element_text(size = 14),
-        # axis.title.x = element_text(size = 14),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         plot.title = element_text(size = 24),
@@ -884,6 +850,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # correlation plot
   output$corr_plot <- renderPlot({
     # standardise variables to get partial correlations
     # https://zief0002.github.io/modeling/cor.html
@@ -962,6 +929,7 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # VAR plot
   output$VAR_plot <- renderPlot({
     VAR_impulse <- input$VAR_impulse
     VAR_response <- input$VAR_response
