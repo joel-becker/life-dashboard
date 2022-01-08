@@ -193,7 +193,7 @@ ui <- fluidPage(
               "onerepmax_plot" # ,
               # width = 8
             ),
-            includeMarkdown("onerepmax.md")
+            includeMarkdown("markdown/onerepmax.md")
           )
         )
       ),
@@ -233,7 +233,7 @@ ui <- fluidPage(
               "volume_plot" # ,
               # width = 8
             ),
-            includeMarkdown("volume.md")
+            includeMarkdown("markdown/volume.md")
           )
         )
       )
@@ -275,7 +275,7 @@ ui <- fluidPage(
               "energy_plot" # ,
               # width = 8
             ),
-            includeMarkdown("energy.md")
+            includeMarkdown("markdown/energy.md")
           )
         )
       ),
@@ -347,7 +347,7 @@ ui <- fluidPage(
             )#,
             #uiOutput("hover_info")
           ),
-          includeMarkdown("mentalhealth.md")
+          includeMarkdown("markdown/mentalhealth.md")
         )
       )
     ),
