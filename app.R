@@ -31,7 +31,7 @@ library("janitor") # clean variable names
 library("zoo")
 library("rlang") # quote variables
 library("vars") # VARs
-library(devtools) # extract_varirf fn
+library("devtools") # extract_varirf fn
 source_url(paste0(
   "https://raw.githubusercontent.com/anguyen1210/",
   "var-tools/master/R/extract_varirf.R"
