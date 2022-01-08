@@ -498,7 +498,7 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
       calorie_intake = na.approx(calorie_intake, date),
       sleep = na.approx(sleep, date),
       #calorie_intake = na.approx(calorie_intake, date),
-      dplyr::across(~ na.approx(.x, date))
+      dplyr::across(everything(), ~ na.approx(.x, date))
     ) %>%
     dplyr::select(-date)
   
