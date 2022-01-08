@@ -21,7 +21,7 @@ lapply(packages, library, character.only = TRUE)
 setwd("/Users/joel/projects/life-dashboard")
 
 # load helper files
-source("tables_helper.R")
+source("code/tables_helper.R")
 source("path_names.R")
 
 # load data

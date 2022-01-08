@@ -38,13 +38,17 @@ source_url(paste0(
   "var-tools/master/R/extract_varirf.R"
   ))
 
-
 # load helper files
-# source("charts_helper.R")
+source("code/app_functions.R")
 
 # don't load functions in R folder
 # TODO: maybe change this later to write chart
 options(shiny.autoload.r = FALSE)
+
+
+########################################################
+####################### Load data ######################
+########################################################
 
 # load data
 if (!("exercise_data.csv" %in% list.files("temp")) ||
@@ -53,7 +57,7 @@ if (!("exercise_data.csv" %in% list.files("temp")) ||
     !("nutrition_data.csv" %in% list.files("temp")) ||
     !("mentalhealth_data.csv" %in% list.files("temp")) ||
     !("VAR_data.csv" %in% list.files("temp"))) {
-  source("tables_exporter.R")
+  source("code/tables_exporter.R")
 } else {
   exercise_data <- read_csv("temp/exercise_data.csv")
   volume_data <- read_csv("temp/volume_data.csv")
@@ -63,81 +67,10 @@ if (!("exercise_data.csv" %in% list.files("temp")) ||
   VAR_data <- read_csv("temp/VAR_data.csv")
 }
 
-# button_color_css <- "
-## DivCompClear, #FinderClear, #EnterTimes{
-# /* Change the background color of the update button
-# to blue. */
-# background: DodgerBlue;
-# /* Change the text size to 15 pixels. */
-# font-size: 15px;
-# }"
 
-weighted_average <- function(xs, weights) {
-  sum(xs*weights) / sum(weights)
-}
-
-
-rolling_weighted_average <- function(xs, date, target_date, epsilon = 0.0035) {
-  time_diff <- as.numeric(abs(difftime(target_date, date, units = "day")))
-  weights <- exp(-epsilon*time_diff)
-  
-  weighted_average(xs, weights)
-}
-
-generate_lags <- function(var, n=10){
-  # TODO: get this working with multiple variables at once
-  var <- enquo(var)
-  
-  indices <- seq_len(n)
-  map( indices, ~quo(lag(!!var, !!.x)) ) %>% 
-    set_names(sprintf("%s lag %02d", quo_text(var), indices))
-  
-}
-
-semipseudolog_trans <- function(base) {
-  scales::trans_new(
-    name      = 'pseudo log10',
-    transform = function(x) asinh(x/2)/log(base),
-    inverse   = function(y) 2 * sinh(y * log(base)),
-    domain    = c(-Inf,Inf))
-}
-
-#custom_date_axis <- function(data) {
-#  interval_length <- interval(ymd(min(data$date)), ymd(max(data$date)))
-#  interval_duration_months <- interval_length %/% months(1)
-#  
-#  # how long is between approximately 6 break points?
-#  months_between_breaks <- ceiling(interval_duration_months / 6)
-#  
-#  first_date_month <- month(min(data$date))
-#  first_date_year  <- year(min(data$date))
-#  first_date       <- ymd(paste0(first_date_year, "-", first_date_month, "-01"))
-#  last_date_month  <- month(max(data$date))
-#  last_date_year   <- year(max(data$date))
-#  last_date        <- ymd(paste0(last_date_year, "-", last_date_month, "-01"))
-#  
-#  breaks <- seq(
-#    first_date,
-#    last_date,
-#    by = paste0(months_between_breaks, " month")
-#    #length.out = 8
-#  )
-#  
-#  interval_endseq_to_lastdate <- interval(
-#    max(breaks), last_date
-#    ) %/% months(1)
-#  
-#  breaks <- breaks + months(interval_endseq_to_lastdate)
-#  
-#  labels = c(
-#    paste0(c(
-#      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-#      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-#      " '21")
-#  )
-#  
-#  return(breaks)
-#}
+########################################################
+#################### User interface ####################
+########################################################
 
 ui <- fluidPage(
   # tags
@@ -418,6 +351,11 @@ ui <- fluidPage(
     )
   )
 )
+
+
+########################################################
+######################## Server ########################
+########################################################
 
 server <- function(input, output) {
   output$onerepmax_plot <- renderPlot({
@@ -1110,5 +1048,10 @@ server <- function(input, output) {
   #  )
   #})
 }
+
+
+########################################################
+######################## Run app #######################
+########################################################
 
 shinyApp(ui, server)
