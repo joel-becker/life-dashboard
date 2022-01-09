@@ -239,7 +239,11 @@ filter_exercise_data <- function(data, weight_data){
     dplyr::filter(!(exercise_name == "Bicep Curl (Machine)")) %>%
     dplyr::group_by(exercise_name) %>%
     dplyr::arrange(date) %>%
-    dplyr::mutate(first_one_rep_max = dplyr::first(one_rep_max)) %>%
+    dplyr::mutate(
+      first_one_rep_max = dplyr::first(one_rep_max),
+      cummax_one_rep_max = cummax(one_rep_max),
+      cummax_hypertrophy_adjusted_one_rep_max = cummax(hypertrophy_adjusted_one_rep_max)
+      ) %>%
     ungroup() %>%
     filter(one_rep_max >= (2/3) * first_one_rep_max) %>%
     dplyr::select(date, exercise_name, one_rep_max, cummax_one_rep_max)
