@@ -26,6 +26,7 @@ source("path_names.R")
 # functions
 
 clean_health_data <- function(data){
+  # cleans health data
   data <- data %>%
     clean_names() %>%
     mutate(
@@ -47,6 +48,7 @@ clean_health_data <- function(data){
 }
 
 join_dates <- function(data, multiple_metrics = FALSE, type = "energy"){
+  # joins dates between earliest date in data and now with data, to remove gaps
   dates <- seq.Date(min(data$date), Sys.Date(), 1)
   
   if (multiple_metrics == FALSE) {
@@ -98,6 +100,7 @@ join_dates <- function(data, multiple_metrics = FALSE, type = "energy"){
 }
 
 wrangle_weight_data <- function(data){
+  # wrangles weight data
   data <- data %>%
     clean_health_data() %>%
     filter(type == 'BodyMass') %>%
@@ -113,6 +116,7 @@ wrangle_weight_data <- function(data){
 }
 
 wrangle_nutrition_data <- function(data){
+  # wrangles nutrition data
   data <- data %>%
     clean_health_data() %>%
     filter(
@@ -157,6 +161,7 @@ wrangle_nutrition_data <- function(data){
 }
 
 wrangle_energy_data <- function(data){
+  # wrangles energy data
   #percent_time_to_earliest_date <- function(date, min_date, max_date) {
   #  
   #}
@@ -214,6 +219,7 @@ wrangle_energy_data <- function(data){
 }
 
 clean_exercise_data <- function(data){
+  # cleans exercise data
   data <- data %>%
     clean_names() %>%
     mutate(date = as.Date(date)) %>%
@@ -223,6 +229,7 @@ clean_exercise_data <- function(data){
 }
 
 filter_exercise_data <- function(data, weight_data){
+  # filters exercise data to remove probable dropsets and easier versions of machines
   data <- data %>%
     wrangle_exercise_data(., weight_data) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Triceps Dip (Assisted)")) %>%
@@ -241,6 +248,7 @@ filter_exercise_data <- function(data, weight_data){
 }
 
 hypertrophy_weight <- function(reps, adjustment = 1.2, type = "step") {
+  # calculates weight for a given rep count
   if (type == "step") {
     hypertrophy_weights <- data.frame(n_reps = seq(0, 50)) %>%
       mutate(
@@ -273,12 +281,15 @@ hypertrophy_weight <- function(reps, adjustment = 1.2, type = "step") {
 }
 
 calculate_1RM <- function(data){
+  # calculates 1RM for each set
+
   # I give the user the option to change the "reps deflator" `x` to negotiate
   # between two competing forces. On one hand, most people find that `x = 30`
   # better tracks their progress and the literal meaning of "estimated 1RM". On
   # the other, a lower `x` would get us closer to a universal weightlifting
   # metric since, all else equal, a 12-rep set with the same estimated 1RM as a
   # 1-rep set is likely to provide greater stimulus.
+
   unweighted_exercises <- c(
     "Chin Up",
     "Pull Up",
@@ -323,25 +334,13 @@ calculate_1RM <- function(data){
       cummax_one_rep_max = cummax(one_rep_max),
       cummax_hypertrophy_adjusted_one_rep_max = cummax(hypertrophy_adjusted_one_rep_max)
     )
-  #  group_by(date) %>%
-  #  mutate(
-  #    exercise_order = as.character(length(unique(exercise_name))),
-  #    set_order = as.character(set_order)
-  #  )
-  #
-  #model <- lm(
-  #  log(one_rep_max) ~ exercise_name +
-  #    log(as.numeric(as.Date(date))) +
-  #    exercise_order +
-  #    set_order,
-  #  data
-  #  )
-  #summary(model)
   
   return(data)
 }
 
 wrangle_nonweightlifting_data <- function(data) {
+  # wrangles non-weightlifting data
+
   nonweightlifting_activities <- c(
     "HKWorkoutActivityTypeSoccer",
     "HKWorkoutActivityTypeRunning",
@@ -363,6 +362,7 @@ wrangle_nonweightlifting_data <- function(data) {
 }
 
 wrangle_exercise_data <- function(data, weight_data){
+  # wrangles exercise data
   data <- data %>%
     clean_exercise_data() %>%
     right_join(weight_data, by = "date") %>%
@@ -374,6 +374,8 @@ wrangle_exercise_data <- function(data, weight_data){
 }
 
 wrangle_volume_data <- function(weightlifting_data, nonweightlifting_data, weight_data){
+  # wrangles exercise volume data
+
   nonweightlifting_data <- wrangle_nonweightlifting_data(nonweightlifting_data)
   
   data <- weightlifting_data %>%
@@ -399,6 +401,7 @@ wrangle_volume_data <- function(weightlifting_data, nonweightlifting_data, weigh
 }
 
 unpack_mentalhealth_data <- function(){
+  # unpack mental health data
   system(
     "mv /Users/joel/Downloads/*.emoods* raw_data/mental_health/zip"
   )
@@ -411,6 +414,7 @@ unpack_mentalhealth_data <- function(){
 }
 
 wrangle_mentalhealth_data <- function(data){
+  # wrangles mental health data
   data <- data %>%
     clean_names() %>%
     mutate(
@@ -427,6 +431,7 @@ wrangle_mentalhealth_data <- function(data){
         grepl("Did well in important exam", note) ~ 4.5,
         grepl("art gallery rationalist party", note) ~ 4.0,
         grepl("last full day in nyc", note) ~ 4.5,
+        grepl("Received great grades", note) ~ 4.0,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
@@ -463,10 +468,12 @@ wrangle_mentalhealth_data <- function(data){
 }
 
 wrangle_sleep_data <- function(data){
+  # wrangles sleep data
   
 }
 
 wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
+  # wrangles VAR data
   energy_data <- energy_data %>%
     dplyr::select(-positive_value) %>%
     pivot_wider(

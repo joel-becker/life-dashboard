@@ -8,15 +8,17 @@
 
 
 weighted_average <- function(xs, weights) {
-  sum(xs*weights) / sum(weights)
+    # returns weighted average for given weights
+    sum(xs*weights) / sum(weights)
 }
 
 
 rolling_weighted_average <- function(xs, date, target_date, epsilon = 0.0035) {
-  time_diff <- as.numeric(abs(difftime(target_date, date, units = "day")))
-  weights <- exp(-epsilon*time_diff)
-  
-  weighted_average(xs, weights)
+    # returns weights for exponential moving average
+    time_diff <- as.numeric(abs(difftime(target_date, date, units = "day")))
+    weights <- exp(-epsilon*time_diff)
+    
+    weighted_average(xs, weights)
 }
 
 generate_lags <- function(var, n=10){
