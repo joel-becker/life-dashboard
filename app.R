@@ -199,7 +199,7 @@ ui <- fluidPage(
             ),
             numericInput(
               "rollavg_length_energy",
-              label = "Exponential mean hyperparameter value",
+              label = "Exponential average hyperparameter value",
               value = 0.15,
               min = 0.01,
               max = 1,
@@ -237,7 +237,7 @@ ui <- fluidPage(
             ),
             numericInput(
               "rollavg_length_nutrition",
-              label = "Exponential mean hyperparameter value",
+              label = "Exponential average hyperparameter value",
               value = 0.15,
               min = 0.01,
               max = 1,
