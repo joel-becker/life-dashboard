@@ -152,7 +152,7 @@ ui <- fluidPage(
               label = "Choose volume metric",
               choices = c(
                 "Aggregate 1RM" = "volume",
-                "Aggregated hypertrophy-adjusted 1RM" = "hypertrophy_adjusted_volume"
+                "Aggregate hypertrophy-adjusted 1RM" = "hypertrophy_adjusted_volume"
               ),
               selected = "volume"
             ),
@@ -261,20 +261,22 @@ ui <- fluidPage(
         "Weight change",
         fluid = TRUE,
         mainPanel(
-            h1("Weight change plot"),
+            h1("Plots"),
+            h2("Weight change"),
             div(
               style = "position:relative",
               plotOutput(
                 "weightchange_plot"
               )
             ),
-            h1("Cumulative calorie surplus plot"),
+            h2("Cumulative calorie surplus"),
             div(
               style = "position:relative",
               plotOutput(
                 "caloriesurplus_plot"
               )
-            )
+            ),
+            includeMarkdown("markdown/weight.md")
           )
         )
       ),
