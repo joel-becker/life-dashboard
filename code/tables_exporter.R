@@ -54,7 +54,7 @@ weight_data <- wrangle_weight_data(df_record)
 exercise_data <- filter_exercise_data(exercise_data_raw, weight_data)
 
 volume_data <- wrangle_volume_data(
-  exercise_data,
+  exercise_data_raw,
   df_workout,
   weight_data
   )

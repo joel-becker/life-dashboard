@@ -236,6 +236,7 @@ filter_exercise_data <- function(data, weight_data){
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Lateral Raise (Machine)")) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Reverse Fly (Machine)")) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Lat Pulldown (Cable)")) %>%
+    dplyr::filter(!(date < "2020-10-01" & exercise_name == "Calf Press on Seated Leg Press")) %>%
     dplyr::filter(!(exercise_name == "Bicep Curl (Machine)")) %>%
     dplyr::group_by(exercise_name) %>%
     dplyr::arrange(date) %>%
