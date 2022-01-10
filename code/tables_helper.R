@@ -12,7 +12,7 @@
 ########################################################
 
 # load libraries
-packages <- c("tidyverse", "janitor", "lubridate", "XML", "triangle")
+packages <- c("tidyverse", "janitor", "lubridate", "XML", "triangle", "zoo")
 new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
 if(length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
@@ -106,7 +106,8 @@ wrangle_weight_data <- function(data){
     filter(type == 'BodyMass') %>%
     dplyr::select(date, value) %>%
     join_dates() %>%
-    fill("value") %>%
+    #fill("value") %>%
+    mutate(value = na.approx(value * 2.20462)) %>%
     dplyr::rename(body_mass = value) %>%
     arrange(date) %>%
     dplyr::group_by(date) %>%
@@ -184,7 +185,7 @@ wrangle_energy_data <- function(data){
     mutate(
       ActiveEnergyBurned = ActiveEnergyBurned * 0.95,
       DietaryEnergyConsumed = DietaryEnergyConsumed *
-        (1 + 0.14 *
+        (1 + 0.12 *
         (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
         time_length(interval(min(date), max(date)), "week"))),
       EnergyBurned = ActiveEnergyBurned + BasalEnergyBurned,
@@ -324,7 +325,7 @@ calculate_1RM <- function(data){
       ),
       one_rep_max = case_when(
         !(exercise_name %in% unweighted_exercises) ~ weight * (1 + (reps / 25)),
-        exercise_name %in% unweighted_exercises ~ (body_mass * 2.20462) * (1 + (reps / 25)),
+        exercise_name %in% unweighted_exercises ~ body_mass * (1 + (reps / 25)),
         TRUE ~ NA_real_
       )
     )

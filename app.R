@@ -50,7 +50,8 @@ options(shiny.autoload.r = FALSE)
 ########################################################
 
 # load data
-if (!("exercise_data.csv" %in% list.files("temp")) ||
+if (!("weight_data.csv" %in% list.files("temp")) ||
+    !("exercise_data.csv" %in% list.files("temp")) ||
     !("volume_data.csv" %in% list.files("temp")) ||
     !("energy_data.csv" %in% list.files("temp")) ||
     !("nutrition_data.csv" %in% list.files("temp")) ||
@@ -58,6 +59,7 @@ if (!("exercise_data.csv" %in% list.files("temp")) ||
     !("VAR_data.csv" %in% list.files("temp"))) {
   source("code/tables_exporter.R")
 } else {
+  weight_data <- read_csv("temp/weight_data.csv")
   exercise_data <- read_csv("temp/exercise_data.csv")
   volume_data <- read_csv("temp/volume_data.csv")
   energy_data <- read_csv("temp/energy_data.csv")
@@ -252,8 +254,30 @@ ui <- fluidPage(
             )
           )
         )
-      )
-    ),
+      ),
+
+      ### weight change
+      tabPanel(
+        "Weight change",
+        fluid = TRUE,
+        mainPanel(
+            h1("Weight change plot"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "weightchange_plot"
+              )
+            ),
+            h1("Cumulative calorie surplus plot"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "caloriesurplus_plot"
+              )
+            )
+          )
+        )
+      ),
 
     ## mental health sub-menu
     tabPanel(
@@ -779,6 +803,80 @@ server <- function(input, output) {
           expand = c(0, 0)
         )
     }
+    
+    return(plot)
+  })
+  
+  # weight change plot
+  output$weightchange_plot <- renderPlot({
+    data <- weight_data %>%
+      filter(date >= ymd("2021-08-26")) %>%
+      mutate(bodymass_change = body_mass - lag(body_mass))
+    
+    plot <- data %>%
+      ggplot(aes(x = date, y = body_mass)) +
+      geom_line(
+        size = 1,
+        colour = "#7570b3"
+      ) +
+      scale_x_date(
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+      ) +
+      
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.key.size = unit(1.5, "cm"), # change legend key size
+        legend.key.height = unit(1, "cm"), # change legend key height
+        legend.key.width = unit(1.5, "cm"), # change legend key width
+        legend.text = element_text(size = 14)
+      )
+    
+    return(plot)
+  })
+  
+  # cumulative caloriesurplus plot
+  output$caloriesurplus_plot <- renderPlot({
+    data <- energy_data %>%
+      filter(date >= ymd("2021-08-26") & metric == "Calorie deficit (absolute)") %>%
+      mutate(
+        calorie_deficit = na.approx(value),
+        cumsum_caloriesurplus = cumsum(calorie_deficit) * (-1)
+        ) %>%
+      dplyr::select(date, cumsum_caloriesurplus)
+    
+    plot <- data %>%
+      ggplot(aes(x = date, y = cumsum_caloriesurplus)) +
+      geom_line(
+        size = 1,
+        colour = "#7570b3"
+      ) +
+      scale_x_date(
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+      ) +
+      
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.key.size = unit(1.5, "cm"), # change legend key size
+        legend.key.height = unit(1, "cm"), # change legend key height
+        legend.key.width = unit(1.5, "cm"), # change legend key width
+        legend.text = element_text(size = 14)
+      )
     
     return(plot)
   })
