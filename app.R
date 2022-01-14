@@ -142,7 +142,7 @@ ui <- fluidPage(
             numericInput(
               "rollavg_length_volume",
               label = "Rolling average window length",
-              value = 0.05,
+              value = 0.1,
               min = 0.01,
               max = 1,
               step = 0.01
@@ -200,7 +200,7 @@ ui <- fluidPage(
             numericInput(
               "rollavg_length_energy",
               label = "Exponential average hyperparameter value",
-              value = 0.15,
+              value = 0.35,
               min = 0.01,
               max = 1,
               step = 0.01
@@ -238,7 +238,7 @@ ui <- fluidPage(
             numericInput(
               "rollavg_length_nutrition",
               label = "Exponential average hyperparameter value",
-              value = 0.15,
+              value = 0.3,
               min = 0.01,
               max = 1,
               step = 0.01
@@ -292,7 +292,7 @@ ui <- fluidPage(
           numericInput(
             "rollavg_length_mentalhealth",
             label = "Exponential moving average hyperparameter value",
-            value = 0.2,
+            value = 0.3,
             min = 0.01,
             max = 1,
             step = 0.01

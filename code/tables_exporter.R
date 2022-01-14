@@ -38,7 +38,7 @@ df_record <- XML:::xmlAttrsToDataFrame(health_xml["//Record"])
 df_workout <- XML:::xmlAttrsToDataFrame(health_xml["//Workout"])
 # df_clinical <- XML:::xmlAttrsToDataFrame(health_xml["//ClinicalRecord"])
 
-mentalhealth_csv <- read.csv("raw_data/mental_health/csv/entry.csv")
+mentalhealth_csv <- read.csv("raw_data/mental_health/entry.csv")
 
 print("-----")
 print("Successfully loaded raw data!")

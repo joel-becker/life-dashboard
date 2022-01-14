@@ -137,21 +137,21 @@ wrangle_nutrition_data <- function(data){
     spread(type, value) %>%
     mutate(
       Water = DietaryWater,
-      Sugar = DietarySugar  *
-        (1 + 0.14 *
-           (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
+      Sugar = DietarySugar *
+        (1 + 0.165 *
+           (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
               time_length(interval(min(date), max(date)), "week"))),
-      Carbohydrates = DietaryCarbohydrates  *
-        (1 + 0.14 *
-           (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
+      Carbohydrates = DietaryCarbohydrates *
+        (1 + 0.165 *
+           (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
               time_length(interval(min(date), max(date)), "week"))),
-      Fat = DietaryFatTotal  *
-        (1 + 0.14 *
-           (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
+      Fat = DietaryFatTotal *
+        (1 + 0.165 *
+           (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
               time_length(interval(min(date), max(date)), "week"))),
       Protein = DietaryProtein *
-        (1 + 0.14 *
-           (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
+        (1 + 0.165 *
+           (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
               time_length(interval(min(date), max(date)), "week")))
     ) %>%
     dplyr::select(-contains("Dietary")) %>%
@@ -183,10 +183,10 @@ wrangle_energy_data <- function(data){
     ungroup() %>%
     spread(type, value) %>%
     mutate(
-      ActiveEnergyBurned = ActiveEnergyBurned * 0.95,
+      ActiveEnergyBurned = ActiveEnergyBurned,
       DietaryEnergyConsumed = DietaryEnergyConsumed *
-        (1 + 0.12 *
-        (0.9 + 0.2 * time_length(interval(date, max(date)), "week") /
+        (1 + 0.165 *
+        (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
         time_length(interval(min(date), max(date)), "week"))),
       EnergyBurned = ActiveEnergyBurned + BasalEnergyBurned,
       EnergyConsumed = DietaryEnergyConsumed,
