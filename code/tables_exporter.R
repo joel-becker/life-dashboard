@@ -39,6 +39,8 @@ df_workout <- XML:::xmlAttrsToDataFrame(health_xml["//Workout"])
 # df_clinical <- XML:::xmlAttrsToDataFrame(health_xml["//ClinicalRecord"])
 
 mentalhealth_csv <- read.csv("raw_data/mental_health/entry.csv")
+custom_mentalhealth_entries_csv <- read.csv("raw_data/mental_health/entry_custom_symptom.csv")
+custom_mentalhealth_symptoms_csv <- read.csv("raw_data/mental_health/custom_symptom.csv")
 
 print("-----")
 print("Successfully loaded raw data!")
@@ -48,7 +50,6 @@ print("Successfully loaded raw data!")
 ##################### Wrangle data #####################
 ########################################################
 
-# wrangle data
 weight_data <- wrangle_weight_data(df_record)
 
 exercise_data <- filter_exercise_data(exercise_data_raw, weight_data)
@@ -63,7 +64,11 @@ energy_data <- wrangle_energy_data(df_record)
 
 nutrition_data <- wrangle_nutrition_data(df_record)
 
-mentalhealth_data <- wrangle_mentalhealth_data(mentalhealth_csv)
+mentalhealth_data <- wrangle_mentalhealth_data(
+  mentalhealth_csv,
+  custom_mentalhealth_entries_csv,
+  custom_mentalhealth_symptoms_csv
+  )
 
 VAR_data <- wrangle_VAR_data(energy_data, mentalhealth_data, volume_data)
 

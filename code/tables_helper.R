@@ -419,8 +419,19 @@ unpack_mentalhealth_data <- function(){
   )
 }
 
-wrangle_mentalhealth_data <- function(data){
+wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
   # wrangles mental health data
+
+  # merge custom mentalhealth data, reshape to merge with main mentalhealth data
+  custom_data <- custom_symptoms %>%
+    dplyr::rename(SYMPTOM = ID) %>%
+    full_join(custom_entries, by = "SYMPTOM") %>%
+    dplyr::select(SYMPTOM, NAME, ID, ENTRY, VALUE) %>%
+    pivot_wider(
+      names_from = "NAME",
+      values_from = "VALUE"
+      )
+
   data <- data %>%
     clean_names() %>%
     mutate(
@@ -452,6 +463,7 @@ wrangle_mentalhealth_data <- function(data){
       #    (0.45*(anxiety^6.6582)) +
       #    (0.45*(depressed^6.6582))
       #)^0.5,
+      life_satisfaction = 
       sleep = replace(sleep, sleep == 0.0, NA),
       positive_value = case_when(
         mental_health > 0 ~ "Net positive",
