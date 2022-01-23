@@ -107,7 +107,7 @@ ui <- fluidPage(
                 dplyr::group_by(exercise_name) %>%
                 dplyr::mutate(last_exercise = max(date)) %>%
                 ungroup() %>%
-                filter(n >= 40) %>%
+                filter(n >= 50) %>%
                 #filter(n >= 40 & last_exercise > Sys.Date() - months(6)) %>%
                 arrange(desc(n)) %>%
                 pull(exercise_name) %>%
@@ -849,7 +849,7 @@ server <- function(input, output) {
     data <- energy_data %>%
       filter(date >= ymd("2021-08-26") & metric == "Calorie deficit (absolute)") %>%
       mutate(
-        calorie_deficit = na.approx(value),
+        calorie_deficit = na.approx(value, na.rm = FALSE),
         cumsum_caloriesurplus = cumsum(calorie_deficit) * (-1)
         ) %>%
       dplyr::select(date, cumsum_caloriesurplus)

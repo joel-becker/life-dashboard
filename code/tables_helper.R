@@ -107,7 +107,7 @@ wrangle_weight_data <- function(data){
     dplyr::select(date, value) %>%
     join_dates() %>%
     #fill("value") %>%
-    mutate(value = na.approx(value * 2.20462)) %>%
+    mutate(value = na.approx(value * 2.20462, na.rm = FALSE)) %>%
     dplyr::rename(body_mass = value) %>%
     arrange(date) %>%
     dplyr::group_by(date) %>%
@@ -156,7 +156,8 @@ wrangle_nutrition_data <- function(data){
     ) %>%
     dplyr::select(-contains("Dietary")) %>%
     pivot_longer(!date, names_to = "metric", values_to = "value") %>%
-    join_dates(multiple_metrics = TRUE, type = "nutrition")
+    join_dates(multiple_metrics = TRUE, type = "nutrition") %>%
+    filter(date < ymd(Sys.Date()))
   
   return(data)
 }
@@ -237,6 +238,8 @@ filter_exercise_data <- function(data, weight_data){
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Lateral Raise (Machine)")) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Reverse Fly (Machine)")) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Lat Pulldown (Cable)")) %>%
+    dplyr::filter(!(date < "2021-09-01" & exercise_name == "Bicep Curl (Dumbbell)")) %>%
+    dplyr::filter(!(date < "2021-10-05" & exercise_name == "Hammer Curl (Dumbbell)")) %>%
     dplyr::filter(!(date < "2020-10-01" & exercise_name == "Calf Press on Seated Leg Press")) %>%
     dplyr::filter(!(exercise_name == "Bicep Curl (Machine)")) %>%
     dplyr::group_by(exercise_name) %>%
@@ -449,6 +452,8 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         grepl("art gallery rationalist party", note) ~ 4.0,
         grepl("last full day in nyc", note) ~ 4.5,
         grepl("Received great grades", note) ~ 4.0,
+        grepl("first day living in Nassau", note) ~ 5.0,
+        grepl("day two in the Bahamas", note) ~ 4.0,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
