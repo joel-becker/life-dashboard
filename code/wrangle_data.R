@@ -23,7 +23,10 @@ setwd("/Users/joel/projects/life-dashboard")
 # source
 source("path_names.R")
 
-# functions
+
+########################################################
+####################### Functions ######################
+########################################################
 
 clean_health_data <- function(data){
   # cleans health data
