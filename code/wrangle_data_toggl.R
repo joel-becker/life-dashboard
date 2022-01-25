@@ -56,7 +56,9 @@ get_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-
       .x$tags <- NULL
       return(.x)
     }) %>%
-    bind_rows()
+    bind_rows() %>%
+    # add list column
+    mutate(tags = tags)
 
   return(res)
 }
@@ -64,9 +66,7 @@ get_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-
 clean_toggl_data <- function(toggl_data){
   # cleans toggl data
 
-  data <- toggl_data %>%
-    # add list column
-    mutate(tags = tags) %>% 
+  data <- toggl_data %>% 
     mutate(
       start = parse_iso_8601(start),
       duration = case_when(

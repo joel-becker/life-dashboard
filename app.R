@@ -982,21 +982,23 @@ server <- function(input, output) {
     return(plot)
   })
   
-  # mental health plot
+  # work plot
   output$work_plot <- renderPlot({
     # to start, simple line chart of breaks and work?
     data <- work_data
     rollavg_length_work <- input$rollavg_length_work
 
     data <- data %>%
-      mutate(date = ) %>%
+      mutate(date = ymd(substr(start, 1, 10))) %>%
       group_by(date, description) %>%
-      summarise(daily_time = sum(pretty_duration)) %>%
+      summarise(daily_seconds = sum(duration)) %>%
+      group_by(description) %>%
       mutate(
+        daily_hours = daily_seconds / (60 * 60),
         exp_moving_avg = map_dbl(
           date,
           function(d) rolling_weighted_average(
-            mental_health,
+            daily_hours,
             date,
             d,
             epsilon = rollavg_length_work
@@ -1004,17 +1006,19 @@ server <- function(input, output) {
         )
       )
 
-    plot <- plot %>%
-      ggplot(aes(x = date, y = daily_time, group = description)) +
-      geom_col(alpha = 1 / 3) +
+    plot <- data %>%
+      ggplot(aes(x = date, y = daily_hours, group = description, colour = description)) +
+      geom_line(alpha = 1 / 3) +
       geom_line(
         aes(
           y = exp_moving_avg,
-          fill = NULL
-        ),
-        size = 1,
-        colour = "#7570b3",
-        linetype = "solid"
+          fill = NA,
+          colour = description,
+          group = description
+        )#,
+        #size = 1,
+        #colour = "#7570b3",
+        #linetype = "solid"
       ) +
       labs(y = "Hours spent") +
       scale_fill_manual(
