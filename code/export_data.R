@@ -21,7 +21,8 @@ lapply(packages, library, character.only = TRUE)
 setwd("/Users/joel/projects/life-dashboard")
 
 # load helper files
-source("code/tables_helper.R")
+source("code/wrangle_data.R")
+source("code/wrangle_toggl.R")
 source("path_names.R")
 
 
@@ -70,6 +71,8 @@ mentalhealth_data <- wrangle_mentalhealth_data(
   custom_mentalhealth_symptoms_csv
   )
 
+toggl_data <- wrangle_toggl_data()
+
 VAR_data <- wrangle_VAR_data(energy_data, mentalhealth_data, volume_data)
 
 print("-----")
@@ -87,6 +90,7 @@ write_csv(volume_data, file = "temp/volume_data.csv")
 write_csv(energy_data, file = "temp/energy_data.csv")
 write_csv(nutrition_data, file = "temp/nutrition_data.csv")
 write_csv(mentalhealth_data, file = "temp/mentalhealth_data.csv")
+write_csv(toggl_data, file = "temp/toggl_data.csv")
 write_csv(VAR_data, file = "temp/VAR_data.csv")
 
 print("-----")

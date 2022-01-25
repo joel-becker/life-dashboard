@@ -56,6 +56,7 @@ if (!("weight_data.csv" %in% list.files("temp")) ||
     !("energy_data.csv" %in% list.files("temp")) ||
     !("nutrition_data.csv" %in% list.files("temp")) ||
     !("mentalhealth_data.csv" %in% list.files("temp")) ||
+    !("work_data.csv" %in% list.files("temp")) ||
     !("VAR_data.csv" %in% list.files("temp"))) {
   source("code/tables_exporter.R")
 } else {
@@ -65,6 +66,7 @@ if (!("weight_data.csv" %in% list.files("temp")) ||
   energy_data <- read_csv("temp/energy_data.csv")
   nutrition_data <- read_csv("temp/nutrition_data.csv")
   mentalhealth_data <- read_csv("temp/mentalhealth_data.csv")
+  work_data <- read_csv("temp/work_data.csv")
   VAR_data <- read_csv("temp/VAR_data.csv")
 }
 
@@ -313,6 +315,36 @@ ui <- fluidPage(
             #uiOutput("hover_info")
           ),
           includeMarkdown("markdown/mentalhealth.md")
+        )
+      )
+    ),
+
+    ## work sub-menu
+    tabPanel(
+      "Work",
+      fluid = TRUE,
+      icon = icon("briefcase"),
+      sidebarLayout(
+        sidebarPanel(
+          titlePanel("Options"),
+          numericInput(
+            "rollavg_length_work",
+            label = "Exponential moving average hyperparameter value",
+            value = 0.3,
+            min = 0.01,
+            max = 1,
+            step = 0.01
+          )
+        ),
+        mainPanel(
+        h1("Work"),
+        div(
+          style = "position:relative",
+          plotOutput(
+            "work_plot"
+          )
+        ),
+        includeMarkdown("markdown/work.md") 
         )
       )
     ),
@@ -930,6 +962,72 @@ server <- function(input, output) {
         breaks = seq(-100, 100, 25),
         # breaks = c(-100, -80, -40, -20, -10, -5, 0, 5, 10, 20, 40, 80, 100),
         #trans = semipseudolog_trans(1.002),
+        expand = c(0, 0)
+      ) +
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.key.size = unit(1.5, "cm"), # change legend key size
+        legend.key.height = unit(1, "cm"), # change legend key height
+        legend.key.width = unit(1.5, "cm"), # change legend key width
+        legend.text = element_text(size = 14)
+      )
+    
+    return(plot)
+  })
+  
+  # mental health plot
+  output$work_plot <- renderPlot({
+    # to start, simple line chart of breaks and work?
+    data <- work_data
+    rollavg_length_work <- input$rollavg_length_work
+
+    data <- data %>%
+      mutate(date = ) %>%
+      group_by(date, description) %>%
+      summarise(daily_time = sum(pretty_duration)) %>%
+      mutate(
+        exp_moving_avg = map_dbl(
+          date,
+          function(d) rolling_weighted_average(
+            mental_health,
+            date,
+            d,
+            epsilon = rollavg_length_work
+          )
+        )
+      )
+
+    plot <- plot %>%
+      ggplot(aes(x = date, y = daily_time, group = description)) +
+      geom_col(alpha = 1 / 3) +
+      geom_line(
+        aes(
+          y = exp_moving_avg,
+          fill = NULL
+        ),
+        size = 1,
+        colour = "#7570b3",
+        linetype = "solid"
+      ) +
+      labs(y = "Hours spent") +
+      scale_fill_manual(
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
+      ) +
+      scale_x_date(
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+      ) +
+      scale_y_continuous(
+        lim = c(0, NA),
+        breaks = seq(0, 10, 2),
         expand = c(0, 0)
       ) +
       theme_minimal() +

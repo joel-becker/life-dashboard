@@ -33,7 +33,7 @@ source("path_names.R")
 ####################### Functions ######################
 ########################################################
 
-get_toggl_entries <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-01-00-00-UTC"), until = Sys.time()){
+get_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-01-00-00-UTC"), until = Sys.time()){
   # largely attributed to https://github.com/ThinkR-open/togglr/blob/master/R/Get_time_entries.R
   url <- glue::glue("https://api.track.toggl.com/api/v8/time_entries?start_date={format_iso_8601(since)}&end_date={format_iso_8601(until)}")
   res <- content(GET(url,
@@ -61,10 +61,10 @@ get_toggl_entries <- function(api_token = toggl_token, since = ymd_hms("2022-01-
   return(res)
 }
 
-clean_toggl_entries <- function(toggl_entries){
-  # cleans toggl entries
+clean_toggl_data <- function(toggl_data){
+  # cleans toggl data
 
-  data <- toggl_entries %>%
+  data <- toggl_data %>%
     # add list column
     mutate(tags = tags) %>% 
     mutate(
@@ -100,11 +100,11 @@ clean_toggl_entries <- function(toggl_entries){
   return(data)
 }
 
-wrangle_toggl_entries <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-01-00-00-UTC"), until = Sys.time()){
-  # wrangles toggl entries 
+wrangle_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-01-00-00-UTC"), until = Sys.time()){
+  # wrangles toggl data 
 
-  data <- get_toggl_entries(api_token, since, until) %>%
-    clean_toggl_entries()
+  data <- get_toggl_data(api_token, since, until) %>%
+    clean_toggl_data()
   
   return(data)
 }
