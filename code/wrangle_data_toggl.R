@@ -66,6 +66,8 @@ get_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01-17-
 clean_toggl_data <- function(toggl_data){
   # cleans toggl data
 
+  # TODO: add ratio of work to break over time
+
   data <- toggl_data %>% 
     mutate(
       start = parse_iso_8601(start),

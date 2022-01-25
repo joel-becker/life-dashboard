@@ -429,14 +429,20 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
   # wrangles mental health data
 
   # merge custom mentalhealth data, reshape to merge with main mentalhealth data
-  #custom_data <- custom_symptoms %>%
-  #  dplyr::rename(SYMPTOM = ID) %>%
-  #  full_join(custom_entries, by = "SYMPTOM") %>%
-  #  dplyr::select(SYMPTOM = NAME, ID, ENTRY, VALUE) %>%
-  #  pivot_wider(
-  #    names_from = "SYMPTOM",
-  #    values_from = "VALUE"
-  #    )
+  custom_data <- custom_symptoms %>%
+    dplyr::rename(SYMPTOM = ID) %>%
+    full_join(custom_entries, by = "SYMPTOM") %>%
+    dplyr::select(SYMPTOM = NAME, ID, ENTRY, VALUE) %>%
+    mutate(
+      days_since_last = ENTRY - max(ENTRY),
+      date = ymd(Sys.Date()) + days(days_since_last)
+    ) %>%
+    select(-c(ID, ENTRY, days_since_last)) %>%
+    pivot_wider(
+      names_from = "SYMPTOM",
+      values_from = "VALUE"
+      ) %>%
+    clean_names()
 
   data <- data %>%
     clean_names() %>%
@@ -457,6 +463,10 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         grepl("Received great grades", note) ~ 4.0,
         grepl("first day living in Nassau", note) ~ 5.0,
         grepl("day two in the Bahamas", note) ~ 4.0,
+        grepl("Met up with FTX staff", note) ~ 4.0,
+        grepl("big welcome dinner for FTX fellows", note) ~ 4.0,
+        grepl("going to war with FTX fellows", note) ~ 4.0,
+        grepl("amazing opportunity in the Bahamas", note) ~ 4.0,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
@@ -490,7 +500,28 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       #note,
       menstrual_cycle,
       weight
-    ))
+    )) %>%
+    full_join(custom_data, by = "date") %>%
+    mutate(
+      work_depth = replace_na(work_depth, 2),
+      integrity = replace_na(integrity, 2),
+      optimism = replace_na(optimism, 2),
+      professional_mastery = replace_na(professional_mastery, 2),
+
+      subjective_well_being = elevated + energy + fun + 
+        dog_interaction - depressed - anxiety -
+        conflict
+
+      life_satisfaction = self_acceptance + positive_liberty + negative_liberty +
+        value_alignment + health + security +
+        relationship_satisfaction + achievement + learning +
+        integrity + optimism - shame -
+        suicidality,
+      
+      work_satisfaction = energy + value_alignment + security +
+        achievement + learning + work_depth +
+        professional_mastery
+    )
 }
 
 wrangle_sleep_data <- function(data){
