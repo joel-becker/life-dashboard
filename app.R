@@ -291,6 +291,17 @@ ui <- fluidPage(
       sidebarLayout(
         sidebarPanel(
           titlePanel("Options"),
+          selectInput(
+            "wellbeing_metric",
+            label = "Choose well-being variable",
+            c(
+              mentalhealth_data %>%
+                pull(metric) %>%
+                unique()
+            ),
+            multiple = TRUE,
+            selected = "Protein"
+          ),
           numericInput(
             "rollavg_length_mentalhealth",
             label = "Exponential moving average hyperparameter value",
@@ -919,8 +930,15 @@ server <- function(input, output) {
   output$mentalhealth_plot <- renderPlot({
     data <- mentalhealth_data
     rollavg_length_mentalhealth <- input$rollavg_length_mentalhealth
+    metric_names_mentalhealth <- input$wellbeing_metric
     
-    plot <- data %>%
+    if (length(metrics_names_mentalhealth) == 0) {
+      metrics_names_mentalhealth <- c("Mental Health")
+    }
+    
+    filtered_data <- mentalhealth_data %>%
+      filter(metric %in% metrics_names_mentalhealth) %>%
+      group_by(metric) %>%
       mutate(
         positive_value = fct_relevel(
           positive_value,
@@ -936,7 +954,10 @@ server <- function(input, output) {
             epsilon = rollavg_length_mentalhealth
           )
         )
-        ) %>%
+        )
+
+    # if single metric, use positive/negative bars
+    plot <- filtered_data %>%
       ggplot(aes(x = date, y = mental_health, fill = positive_value)) +
       geom_col(alpha = 1 / 3) +
       geom_line(
@@ -947,7 +968,23 @@ server <- function(input, output) {
         size = 1,
         colour = "#7570b3",
         linetype = "solid"
-      ) +
+      )
+    # if multiple metric, use points by metric
+    plot <- filtered_data %>%
+      ggplot(aes(x = date, y = mental_health, fill = metric, group = metric)) +
+      geom_col(alpha = 1 / 3) +
+      geom_line(
+        aes(
+          y = exp_moving_avg,
+          fill = NULL
+        ),
+        size = 1,
+        colour = "#7570b3",
+        linetype = "solid",
+        group = metric
+      )
+
+    plot <- plot +
       labs(y = "Mental health score") +
       scale_fill_manual(
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")

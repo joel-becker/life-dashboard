@@ -489,18 +489,6 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         TRUE ~ NA_character_
       )
     ) %>%
-    dplyr::select(-c(
-      id,
-      date_yyyy_mm_dd,
-      #elevated,
-      #irritability,
-      #anxiety,
-      #depressed,
-      psychotic_symptoms,
-      #note,
-      menstrual_cycle,
-      weight
-    )) %>%
     full_join(custom_data, by = "date") %>%
     mutate(
       work_depth = replace_na(work_depth, 2),
@@ -510,7 +498,7 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
 
       subjective_well_being = elevated + energy + fun + 
         dog_interaction - depressed - anxiety -
-        conflict
+        conflict,
 
       life_satisfaction = self_acceptance + positive_liberty + negative_liberty +
         value_alignment + health + security +
@@ -521,6 +509,15 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       work_satisfaction = energy + value_alignment + security +
         achievement + learning + work_depth +
         professional_mastery
+    ) %>% 
+    dplyr::select(
+      date,
+      mental_health,
+      subjective_well_being,
+      life_satisfaction,
+      work_satisfaction,
+      sleep,
+      note
     )
 }
 
@@ -553,7 +550,8 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
       date,
       #Protein, Sugar,
       calorie_expenditure, calorie_intake, #water,
-      anxiety, depressed, elevated, sleep, mental_health, #therapy,
+      #anxiety, depressed, elevated,
+      sleep, mental_health, #therapy,
       volume#, total_energy_burned
     ) %>%
     filter(date >= ymd("2021-06-27") & date < max(date)) %>%
