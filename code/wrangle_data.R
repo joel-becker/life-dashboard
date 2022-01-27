@@ -481,7 +481,6 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       #    (0.45*(anxiety^6.6582)) +
       #    (0.45*(depressed^6.6582))
       #)^0.5,
-      #life_satisfaction = 
       sleep = replace(sleep, sleep == 0.0, NA),
       positive_value = case_when(
         mental_health > 0 ~ "Net positive",
@@ -499,16 +498,28 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       subjective_well_being = elevated + energy + fun + 
         dog_interaction - depressed - anxiety -
         conflict,
+      subjective_well_being = (
+        (subjective_well_being * (200 / (4+4+4+2-1-1-1)))
+          - (100 + 4 - 3)
+      ),
 
       life_satisfaction = self_acceptance + positive_liberty + negative_liberty +
         value_alignment + health + security +
         relationship_satisfaction + achievement + learning +
         integrity + optimism - shame -
         suicidality,
+      life_satisfaction = (
+        (life_satisfaction * (200 / (4+4+4+4+4+4+4+4+4+4+4-1-1)))
+          - (100 + 11 - 2)
+      ),
       
       work_satisfaction = energy + value_alignment + security +
         achievement + learning + work_depth +
-        professional_mastery
+        professional_mastery,
+      work_satisfaction = (
+        (work_satisfaction * (200 / (4+4+4+4+4+4+4)))
+          - (100 + 7)
+      )
     ) %>% 
     dplyr::select(
       date,
@@ -516,9 +527,25 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       subjective_well_being,
       life_satisfaction,
       work_satisfaction,
-      sleep,
-      note
+      sleep#,
+      #note
+    ) %>%
+    pivot_longer(!date, names_to = "metric", values_to = "value") %>%
+    mutate(
+      positive_value = case_when(
+        value > 0 ~ "Net positive",
+        value <= 0 ~ "Net negative",
+        TRUE ~ NA_character_
+      ),
+      metric = case_when(
+        metric == "mental_health" ~ "Mental Health",
+        metric == "subjective_well_being" ~ "Subjective Well-Being",
+        metric == "life_satisfaction" ~ "Life Satisfaction",
+        metric == "work_satisfaction" ~ "Work Satisfaction"
+      )
     )
+
+  return(data)
 }
 
 wrangle_sleep_data <- function(data){
@@ -536,6 +563,12 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
     )
   
   volume_data <- volume_data %>%
+    pivot_wider(
+      names_from = "metric",
+      values_from = "value"
+    )
+  
+  mentalhealth_data <- mentalhealth_data %>%
     pivot_wider(
       names_from = "metric",
       values_from = "value"
