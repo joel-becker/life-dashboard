@@ -684,35 +684,35 @@ server <- function(input, output) {
       plot <- plot +
         labs(y = "Calorie deficit/surplus") +
         scale_y_continuous(
-          breaks = seq(-1500, 1500, 500),
+          breaks = seq(-2500, 2500, 500),
           expand = c(0, 0)
         )
     } else if ("Protein" %in% metric_names) {
       plot <- plot +
         labs(y = "Protein consumed (grams)") +
         scale_y_continuous(
-          breaks = seq(0, 300, 50),
+          breaks = seq(0, 400, 50),
           expand = c(0, 0)
         )
     } else if ("Sugar" %in% metric_names) {
       plot <- plot +
         labs(y = "Sugar consumed (grams)") +
         scale_y_continuous(
-          breaks = seq(0, 300, 50),
+          breaks = seq(0, 400, 50),
           expand = c(0, 0)
         )
     } else if ("Calorie expenditure" %in% metric_names) {
       plot <- plot +
         labs(y = "Calories burned") +
         scale_y_continuous(
-          breaks = seq(0, 4500, 1000),
+          breaks = seq(0, 6000, 1000),
           expand = c(0, 0)
         )
     } else if ("Calorie intake" %in% metric_names) {
       plot <- plot +
         labs(y = "Calories consumed") +
         scale_y_continuous(
-          breaks = seq(0, 4500, 1000),
+          breaks = seq(0, 6000, 1000),
           expand = c(0, 0)
         )
     }
