@@ -1044,7 +1044,7 @@ server <- function(input, output) {
     }
 
     plot <- plot +
-      labs(y = "Score") +
+      #labs(y = "Score") +
       scale_fill_manual(
         values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
       ) +
@@ -1073,6 +1073,12 @@ server <- function(input, output) {
         legend.key.height = unit(1, "cm"), # change legend key height
         legend.key.width = unit(1.5, "cm"), # change legend key width
         legend.text = element_text(size = 14)
+      ) +
+      guides(
+        color = guide_legend(
+          ncol = 1#,
+          #byrow = TRUE
+        )
       )
     
     return(plot)
