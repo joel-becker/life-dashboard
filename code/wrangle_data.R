@@ -425,7 +425,7 @@ unpack_mentalhealth_data <- function(){
   )
 }
 
-wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
+calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms){
   # wrangles mental health data
 
   # merge custom mentalhealth data, reshape to merge with main mentalhealth data
@@ -437,7 +437,7 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       days_since_last = ENTRY - max(ENTRY),
       date = ymd(Sys.Date()) + days(days_since_last)
     ) %>%
-    select(-c(ID, ENTRY, days_since_last)) %>%
+    dplyr::select(-c(ID, ENTRY, days_since_last)) %>%
     pivot_wider(
       names_from = "SYMPTOM",
       values_from = "VALUE"
@@ -529,7 +529,17 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
       work_satisfaction,
       sleep#,
       #note
-    ) %>%
+    )
+
+  return(data)
+}
+
+wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
+  # wrangles mental health data
+
+  data <- calculate_mentalhealth_metrics(data, custom_entries, custom_symptoms)
+
+  data <- data %>%
     pivot_longer(!date, names_to = "metric", values_to = "value") %>%
     mutate(
       positive_value = case_when(
@@ -543,7 +553,8 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         metric == "life_satisfaction" ~ "Life Satisfaction",
         metric == "work_satisfaction" ~ "Work Satisfaction"
       )
-    )
+    ) %>% 
+    drop_na(metric)
 
   return(data)
 }

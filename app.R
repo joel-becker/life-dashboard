@@ -300,7 +300,7 @@ ui <- fluidPage(
                 unique()
             ),
             multiple = TRUE,
-            selected = "Protein"
+            selected = "Mental Health"
           ),
           numericInput(
             "rollavg_length_mentalhealth",
@@ -931,8 +931,12 @@ server <- function(input, output) {
     data <- mentalhealth_data
     rollavg_length_mentalhealth <- input$rollavg_length_mentalhealth
     metric_names_mentalhealth <- input$wellbeing_metric
+
+    #mentalhealth_data <- mentalhealth_data %>%
+    #  dplyr::select(-c("sleep", "note", "positive_value")) %>%
+    #  pivot_longer(!date, names_to = "metric", values_to = "value")
     
-    if (length(metrics_names_mentalhealth) == 0) {
+    if (length(metric_names_mentalhealth) == 0) {
       filtered_data <- mentalhealth_data %>%
         filter(metric == "Mental Health") %>%
         drop_na() %>%
@@ -947,12 +951,12 @@ server <- function(input, output) {
             )
           )
         )
-    } else if ("Mental Health" %in% metrics_names_mentalhealth) {
-      metrics_names_except_mentalhealth <- metrics_names_mentalhealth[
-        metrics_names_mentalhealth != "Mental Health"
+    } else if ("Mental Health" %in% metric_names_mentalhealth) {
+      metric_names_except_mentalhealth <- metric_names_mentalhealth[
+        metric_names_mentalhealth != "Mental Health"
       ]
 
-      filtered_data_mentalhealth <- mentalhealth_data %>%
+      filtered_data <- mentalhealth_data %>%
         filter(metric == "Mental Health") %>%
         drop_na() %>%
         mutate(
@@ -967,30 +971,49 @@ server <- function(input, output) {
           )
         )
 
-      filtered_data_nonmentalhealth <- mentalhealth_data %>%
-        filter(metric == metrics_names_except_mentalhealth) %>%
-        drop_na() %>%
-        group_by(metric) %>%
-        mutate(
-          exp_moving_avg = map_dbl(
-            date,
-            function(d) rolling_weighted_average(
-              value,
+      if (length(metric_names_except_mentalhealth) > 0) {
+        filtered_data_nonmentalhealth <- mentalhealth_data %>%
+          filter(metric == metric_names_except_mentalhealth) %>%
+          drop_na() %>%
+          group_by(metric) %>%
+          mutate(
+            exp_moving_avg = map_dbl(
               date,
-              d,
-              epsilon = rollavg_length_mentalhealth
+              function(d) rolling_weighted_average(
+                value,
+                date,
+                d,
+                epsilon = rollavg_length_mentalhealth
+              )
             )
           )
-        )
       
-      filtered_data <- filtered_data_mentalhealth %>%
-        rbind(., filtered_data_nonmentalhealth)
+        filtered_data <- filtered_data %>%
+          rbind(., filtered_data_nonmentalhealth)
+      }
+    } else {
+        filtered_data <- mentalhealth_data %>%
+          filter(metric %in% metric_names_mentalhealth) %>%
+          drop_na() %>%
+          group_by(metric) %>%
+          mutate(
+            exp_moving_avg = map_dbl(
+              date,
+              function(d) rolling_weighted_average(
+                value,
+                date,
+                d,
+                epsilon = rollavg_length_mentalhealth
+              )
+            )
+          )
     }
 
     # if single metric, use positive/negative bars
-    plot <- filtered_data %>%
+    if (length(metric_names_mentalhealth) == 1) {
+      plot <- filtered_data %>%
       ggplot(aes(x = date, y = value, fill = positive_value)) +
-      geom_col(alpha = 1 / 3) +
+      geom_point(alpha = 1 / 3) +
       geom_line(
         aes(
           y = exp_moving_avg,
@@ -1000,21 +1023,25 @@ server <- function(input, output) {
         colour = "#7570b3",
         linetype = "solid"
       )
+    }
+
     # if multiple metric, use points by metric
-    plot <- filtered_data %>%
-      ggplot(aes(x = date, y = value, colour = metric, group = metric)) +
-      geom_point(alpha = 1 / 3) +
-      geom_line(
-        aes(
-          y = exp_moving_avg,
-          fill = NULL,
-          colour = metric,
-          group = metric
-        ),
-        size = 1,
-        colour = "#7570b3",
-        linetype = "solid"
-      )
+    if (length(metric_names_mentalhealth) > 1) {
+      plot <- filtered_data %>%
+        ggplot(aes(x = date, y = value, colour = metric, group = metric)) +
+        geom_point(alpha = 1 / 3) +
+        geom_line(
+          aes(
+            y = exp_moving_avg,
+            fill = NULL,
+            colour = metric,
+            group = metric
+          ),
+          size = 1,
+          colour = "#7570b3",
+          linetype = "solid"
+        )
+    }
 
     plot <- plot +
       labs(y = "Score") +
