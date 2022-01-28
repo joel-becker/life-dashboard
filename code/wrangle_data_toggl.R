@@ -86,7 +86,7 @@ clean_toggl_data <- function(toggl_data){
       stop = parse_iso_8601(stop)
     ) %>%
     left_join(get_project_id_and_name(toggl_token), by = c("pid" = "id")) %>%
-    select(
+    dplyr::select(
       start,
       stop,
       pretty_duration,
