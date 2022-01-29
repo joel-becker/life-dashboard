@@ -82,13 +82,14 @@ calorie_expenditure_train <- training(calorie_expenditure_split)
 calorie_expenditure_test <- testing(calorie_expenditure_split)
 calorie_expenditure_cv <- vfold_cv(calorie_expenditure_train)
 
-calorie_expenditure_recipe <- calorie_expenditure_data %>% 
+calorie_expenditure_recipe <- calorie_expenditure_train %>% 
   recipe(
     calorie_expenditure ~ calorie_intake + volume + total_energy_burned,
     data = .
   ) %>% 
   #step_normalise(all_numeric()) %>% 
-  step_impute_knn(all_predictors()) 
+  step_impute_knn(all_predictors()) %>% 
+  prep(training = calorie_expenditure_train, retain = TRUE)
 
 calorie_expenditure_model <- rand_forest(mode = "regression") %>% 
   set_engine("ranger", importance = "impurity")
@@ -104,3 +105,24 @@ calorie_expenditure_fit <- calorie_expenditure_workflow %>%
 calorie_expenditure_performance <- calorie_expenditure_fit %>% 
   collect_metrics()
 
+# attempt two from here: https://www.tidymodels.org/learn/models/parsnip-ranger-glmnet/#random-forest
+
+calorie_expenditure_fit <- calorie_expenditure_model %>% 
+  fit(calorie_expenditure ~ calorie_intake + volume + total_energy_burned, data = calorie_expenditure_train)
+
+calorie_expenditure_test_normalised <- bake(
+  calorie_expenditure_recipe, 
+  new_data = calorie_expenditure_test, 
+  all_predictors()
+  )
+
+calorie_expenditure_test_results <- calorie_expenditure_test %>%
+  select(calorie_expenditure) %>% 
+  bind_cols(
+    predict(calorie_expenditure_fit, new_data = calorie_expenditure_test_normalised)
+  )
+
+calorie_expenditure_test_results %>% 
+  ggplot(aes(x = .pred, y = calorie_expenditure)) + 
+  geom_abline(col = "green", lty = 2) + 
+  geom_point(alpha = .4)
