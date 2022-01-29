@@ -1012,16 +1012,22 @@ server <- function(input, output) {
     # if single metric, use positive/negative bars
     if (length(metric_names_mentalhealth) == 1) {
       plot <- filtered_data %>%
-      ggplot(aes(x = date, y = value, fill = positive_value)) +
-      geom_point(alpha = 1 / 3) +
-      geom_line(
-        aes(
-          y = exp_moving_avg,
-          fill = NULL
-        ),
-        size = 1,
-        colour = "#7570b3",
-        linetype = "solid"
+        ggplot(aes(x = date, y = value, fill = positive_value, colour = positive_value)) +
+        geom_point(alpha = 1 / 3) +
+        geom_line(
+          aes(
+            y = exp_moving_avg,
+            fill = NULL
+          ),
+          size = 1,
+          colour = "#7570b3",
+          linetype = "solid"
+        ) +
+      scale_colour_manual(
+        values = c("#d95f02", "#1b9e77")
+      ) +
+      scale_fill_manual(
+        values = c("#d95f02", "#1b9e77")
       )
     }
 
@@ -1038,16 +1044,19 @@ server <- function(input, output) {
             group = metric
           ),
           size = 1,
-          colour = "#7570b3",
+          #colour = "#7570b3",
           linetype = "solid"
-        )
+        ) +
+      scale_colour_manual(
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+      ) +
+      scale_fill_manual(
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+      )
     }
 
     plot <- plot +
       #labs(y = "Score") +
-      scale_fill_manual(
-        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
-      ) +
       scale_x_date(
         date_minor_breaks = "1 month",
         date_labels =  "%b %Y",
