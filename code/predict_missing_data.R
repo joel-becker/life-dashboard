@@ -3,7 +3,8 @@
 # Author: Joel Becker
 
 # Notes:
-#
+#   - TODO: include steps and more basic exercise data in predictions
+#   - TODO: attach predictions to actual data for inclusion in charts
 #------------------------------------------------------------------------------#
 
 
@@ -74,7 +75,7 @@ calorie_expenditure_data <- energy_data %>%
   inner_join(volume_data, by = "date")
 
 calorie_expenditure_holdout <- calorie_expenditure_data %>% 
-  filter(is.na(calorie_expenditure) & date > ymd("2021-03-18")) %>%
+  filter(is.na(calorie_expenditure) & date > ymd("2021-01-01")) %>%
   select(-calorie_expenditure) %>%
   drop_na()
 
@@ -94,6 +95,7 @@ calorie_expenditure_recipe <- calorie_expenditure_train %>%
     calorie_expenditure ~ calorie_intake + volume + total_energy_burned,
     data = .
   ) %>% 
+  step_lag(calorie_intake, volume, total_energy_burned, lag = 1:3) %>%
   #step_normalise(all_numeric()) %>% 
   step_impute_knn(all_predictors()) %>% 
   prep(training = calorie_expenditure_train, retain = TRUE)
@@ -134,10 +136,58 @@ calorie_expenditure_test_results %>%
   geom_abline(col = "green", lty = 2) + 
   geom_point(alpha = .4)
 
+# step 3: add predictions to holdout
+
 calorie_expenditure_holdout_results <- calorie_expenditure_holdout %>%
   bind_cols(
     predict(
       calorie_expenditure_fit,
       new_data = calorie_expenditure_holdout
     )
+  ) %>%
+  mutate(status = "prediction") %>%
+  select(date, calorie_expenditure = .pred, status)
+
+calorie_expenditure_all <- calorie_expenditure_data %>% 
+  bind_rows(calorie_expenditure_holdout_results) %>%
+  dplyr::select(date, calorie_expenditure, status) %>%
+  full_join(energy_data, by = "date") %>% 
+  arrange(date) %>%
+  mutate(
+    calorie_expenditure = case_when(
+      is.na(calorie_expenditure.y) ~ calorie_expenditure.x,
+      TRUE ~ calorie_expenditure.y
+    ),
+    status = case_when(
+      is.na(status) ~ "actual",
+      TRUE ~ status
+    )
+  ) %>%
+  dplyr::select(date, calorie_expenditure, status, calorie_intake)
+
+energy_data_with_predictions <- calorie_expenditure_all %>% 
+  filter(calorie_intake > 1000) %>%
+  mutate(
+    EnergyDeficit = calorie_expenditure - calorie_intake,
+    EnergyDeficitPct = (calorie_intake / calorie_expenditure)
+  ) %>%
+  pivot_longer(
+    !c(date, status), names_to = "metric", values_to = "value"
+  ) %>%
+  mutate(
+    positive_value = case_when(
+        value > 0 ~ "Deficit",
+        value <= 0 ~ "Surplus",
+        TRUE ~ NA_character_
+      ),
+    metric = case_when(
+      metric == "EnergyBurned" ~ "Calorie expenditure",
+      metric == "EnergyConsumed" ~ "Calorie intake",
+      metric == "EnergyDeficit" ~ "Calorie deficit (absolute)",
+      metric == "EnergyDeficitPct" ~ "Calorie deficit (relative)",
+      TRUE ~ metric
+    )
   )
+
+# save new energy data 
+write_csv(energy_data_with_predictions, file = "temp/energy_data_with_predictions.csv")

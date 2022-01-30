@@ -63,7 +63,8 @@ if (!("weight_data.csv" %in% list.files("temp")) ||
   weight_data <- read_csv("temp/weight_data.csv")
   exercise_data <- read_csv("temp/exercise_data.csv")
   volume_data <- read_csv("temp/volume_data.csv")
-  energy_data <- read_csv("temp/energy_data.csv")
+  #energy_data <- read_csv("temp/energy_data.csv")
+  energy_data <- read_csv("temp/energy_data_with_predictions.csv")
   nutrition_data <- read_csv("temp/nutrition_data.csv")
   mentalhealth_data <- read_csv("temp/mentalhealth_data.csv")
   work_data <- read_csv("temp/work_data.csv")
@@ -582,7 +583,7 @@ server <- function(input, output) {
     metric_names <- input$energy_metric
     rollavg_length_energy <- input$rollavg_length_energy
     
-    data <- data %>%
+    all_data <- data %>%
       filter(
         metric %in% metric_names
       ) %>%
@@ -606,35 +607,30 @@ server <- function(input, output) {
         by = "date"
       )
     
-    data_without_NA <- data %>%
+    actual_data <- all_data %>%
+      filter(status == "actual")
+
+    data_without_NA <- all_data %>%
       filter(!is.na(value))
     
-    plot <- data %>%
+    plot <- all_data %>%
       ggplot(aes(x = date, y = value))
     
     if ("Calorie deficit (relative)" %in% metric_names) {
-      plot <- data %>%
+      plot <- all_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(alpha = 1 / 3)
+        geom_col(data = actual_data, alpha = 1 / 3)
     } else if ("Calorie deficit (absolute)" %in% metric_names) {
-      plot <- data %>%
+      plot <- all_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(alpha = 1 / 3)
-    } else if ("Protein" %in% metric_names) {
-      plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
-        theme(legend.position = "none")
-    } else if ("Sugar" %in% metric_names) {
-      plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
-        theme(legend.position = "none")
+        geom_col(data = actual_data, alpha = 1 / 3)
     } else if ("Calorie expenditure" %in% metric_names) {
       plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        geom_col(data = actual_data, alpha = 1 / 3, fill = "#1b9e77") +
         theme(legend.position = "none")
     } else if ("Calorie intake" %in% metric_names) {
       plot <- plot +
-        geom_col(alpha = 1 / 3, fill = "#1b9e77") +
+        geom_col(data = actual_data, alpha = 1 / 3, fill = "#1b9e77") +
         theme(legend.position = "none")
     }
     
@@ -685,20 +681,6 @@ server <- function(input, output) {
         labs(y = "Calorie deficit/surplus") +
         scale_y_continuous(
           breaks = seq(-2500, 2500, 500),
-          expand = c(0, 0)
-        )
-    } else if ("Protein" %in% metric_names) {
-      plot <- plot +
-        labs(y = "Protein consumed (grams)") +
-        scale_y_continuous(
-          breaks = seq(0, 400, 50),
-          expand = c(0, 0)
-        )
-    } else if ("Sugar" %in% metric_names) {
-      plot <- plot +
-        labs(y = "Sugar consumed (grams)") +
-        scale_y_continuous(
-          breaks = seq(0, 400, 50),
           expand = c(0, 0)
         )
     } else if ("Calorie expenditure" %in% metric_names) {
@@ -1023,6 +1005,14 @@ server <- function(input, output) {
           colour = "#7570b3",
           linetype = "solid"
         ) +
+        geom_ribbon(
+          aes(ymin = 0, ymax = pmax(filtered_data$exp_moving_avg, 0)), 
+          fill = "#1b9e77", colour = "#1b9e77", alpha = 1 / 3
+        ) +
+        geom_ribbon(
+          aes(ymin = pmin(filtered_data$exp_moving_avg, 0)), ymax = 0, 
+          fill = "#d95f02", colour = "#d95f02", alpha = 1 / 3
+        ) +
       scale_colour_manual(
         values = c("#d95f02", "#1b9e77")
       ) +
@@ -1056,6 +1046,7 @@ server <- function(input, output) {
     }
 
     plot <- plot +
+      geom_hline(aes(yintercept = 0, colour = "#636363")) +
       #labs(y = "Score") +
       scale_x_date(
         date_minor_breaks = "1 month",
