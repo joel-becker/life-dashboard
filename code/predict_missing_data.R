@@ -14,6 +14,7 @@
 # load libraries
 packages <- c(
   "tidyverse", 
+  "lubridate", # dates
   "tidymodels", 
   "ranger", #not sure
   "workflow", # ML workflow
@@ -70,8 +71,14 @@ volume_data <- volume_data %>%
   dplyr::select(date, volume = value, total_energy_burned)
 
 calorie_expenditure_data <- energy_data %>% 
-  inner_join(volume_data, by = "date") %>% 
+  inner_join(volume_data, by = "date")
+
+calorie_expenditure_holdout <- calorie_expenditure_data %>% 
+  filter(is.na(calorie_expenditure) & date > ymd("2021-03-18")) %>%
+  select(-calorie_expenditure) %>%
   drop_na()
+
+calorie_expenditure_data <- calorie_expenditure_data %>% drop_na()
 
 # step 2: ML preparation
 
@@ -126,3 +133,11 @@ calorie_expenditure_test_results %>%
   ggplot(aes(x = .pred, y = calorie_expenditure)) + 
   geom_abline(col = "green", lty = 2) + 
   geom_point(alpha = .4)
+
+calorie_expenditure_holdout_results <- calorie_expenditure_holdout %>%
+  bind_cols(
+    predict(
+      calorie_expenditure_fit,
+      new_data = calorie_expenditure_holdout
+    )
+  )
