@@ -625,12 +625,12 @@ server <- function(input, output) {
     } else if ("Calorie expenditure" %in% metric_names) {
       plot <- actual_data %>%
         ggplot(aes(x = date, y = value)) +
-        geom_col(alpha = 1 / 3) +
+        geom_col(aes(colour = "#1b9e77"), alpha = 1 / 3) +
         theme(legend.position = "none")
     } else if ("Calorie intake" %in% metric_names) {
       plot <- all_data %>%
         ggplot(aes(x = date, y = value)) +
-        geom_col(alpha = 1 / 3) +
+        geom_col(aes(colour = "#1b9e77"), alpha = 1 / 3) +
         theme(legend.position = "none")
     }
     
@@ -1081,7 +1081,7 @@ server <- function(input, output) {
       mutate(date = ymd(substr(start, 1, 10))) %>%
       group_by(date, description) %>%
       dplyr::summarise(daily_seconds = sum(duration)) %>%
-      group_by(description) %>%
+      dplyr::group_by(description) %>%
       mutate(
         daily_hours = daily_seconds / (60 * 60),
         exp_moving_avg = map_dbl(
