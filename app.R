@@ -613,29 +613,29 @@ server <- function(input, output) {
     data_without_NA <- all_data %>%
       filter(!is.na(value))
     
-    plot <- all_data %>%
-      ggplot(aes(x = date, y = value))
-    
     if ("Calorie deficit (relative)" %in% metric_names) {
-      plot <- all_data %>%
+      plot <- actual_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(data = actual_data, alpha = 1 / 3)
+        geom_col(alpha = 1 / 3)
     } else if ("Calorie deficit (absolute)" %in% metric_names) {
-      plot <- all_data %>%
+      plot <- actual_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value)) +
-        geom_col(data = actual_data, alpha = 1 / 3)
+        geom_col(alpha = 1 / 3)
     } else if ("Calorie expenditure" %in% metric_names) {
-      plot <- plot +
-        geom_col(data = actual_data, alpha = 1 / 3, fill = "#1b9e77") +
+      plot <- actual_data %>%
+        ggplot(aes(x = date, y = value)) +
+        geom_col(alpha = 1 / 3, colour = "#1b9e77") +
         theme(legend.position = "none")
     } else if ("Calorie intake" %in% metric_names) {
-      plot <- plot +
-        geom_col(data = actual_data, alpha = 1 / 3, fill = "#1b9e77") +
+      plot <- actual_data %>%
+        ggplot(aes(x = date, y = value)) +
+        geom_col(alpha = 1 / 3, colour = "#1b9e77") +
         theme(legend.position = "none")
     }
     
     plot <- plot +
       geom_line(
+        data = all_data,
         aes(
           y = exp_moving_avg,
           fill = NULL
@@ -933,31 +933,15 @@ server <- function(input, output) {
             )
           )
         )
-    } else if ("Mental Health" %in% metric_names_mentalhealth) {
-      metric_names_except_mentalhealth <- metric_names_mentalhealth[
-        metric_names_mentalhealth != "Mental Health"
-      ]
+    #} else if ("Mental Health" %in% metric_names_mentalhealth) {
+    } else if (length(metric_names_mentalhealth) > 0) {
 
-      filtered_data <- mentalhealth_data %>%
-        filter(metric == "Mental Health") %>%
-        drop_na() %>%
-        mutate(
-          exp_moving_avg = map_dbl(
-            date,
-            function(d) rolling_weighted_average(
-              value,
-              date,
-              d,
-              epsilon = rollavg_length_mentalhealth
-            )
-          )
-        )
+      data = data.frame()
 
-      if (length(metric_names_except_mentalhealth) > 0) {
-        filtered_data_nonmentalhealth <- mentalhealth_data %>%
-          filter(metric == metric_names_except_mentalhealth) %>%
+      for (i in metric_names_mentalhealth) {
+        filtered_data <- mentalhealth_data %>%
+          filter(metric == i) %>%
           drop_na() %>%
-          group_by(metric) %>%
           mutate(
             exp_moving_avg = map_dbl(
               date,
@@ -969,10 +953,11 @@ server <- function(input, output) {
               )
             )
           )
-      
-        filtered_data <- filtered_data %>%
-          rbind(., filtered_data_nonmentalhealth)
+        
+        data <- bind_rows(data, filtered_data)
       }
+
+      filtered_data <- data
     } else {
         filtered_data <- mentalhealth_data %>%
           filter(metric %in% metric_names_mentalhealth) %>%
@@ -995,6 +980,7 @@ server <- function(input, output) {
     if (length(metric_names_mentalhealth) == 1) {
       plot <- filtered_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value, colour = positive_value)) +
+        geom_hline(aes(yintercept = 0), fill = "#636363", colour = "#636363") +
         geom_point(alpha = 1 / 3) +
         geom_line(
           aes(
@@ -1005,26 +991,27 @@ server <- function(input, output) {
           colour = "#7570b3",
           linetype = "solid"
         ) +
+        scale_colour_manual(
+          values = c("#d95f02", "#1b9e77")
+        ) +
+        scale_fill_manual(
+          values = c("#d95f02", "#1b9e77")
+        ) +
         geom_ribbon(
-          aes(ymin = 0, ymax = pmax(filtered_data$exp_moving_avg, 0)), 
+          aes(ymin = 0, ymax = pmax(exp_moving_avg, 0)), 
           fill = "#1b9e77", colour = "#1b9e77", alpha = 1 / 3
         ) +
         geom_ribbon(
-          aes(ymin = pmin(filtered_data$exp_moving_avg, 0)), ymax = 0, 
+          aes(ymin = pmin(exp_moving_avg, 0), ymax = 0), 
           fill = "#d95f02", colour = "#d95f02", alpha = 1 / 3
-        ) +
-      scale_colour_manual(
-        values = c("#d95f02", "#1b9e77")
-      ) +
-      scale_fill_manual(
-        values = c("#d95f02", "#1b9e77")
-      )
+        )
     }
 
     # if multiple metric, use points by metric
     if (length(metric_names_mentalhealth) > 1) {
       plot <- filtered_data %>%
         ggplot(aes(x = date, y = value, colour = metric, group = metric)) +
+        geom_hline(aes(yintercept = 0), colour = "#636363") +
         geom_point(alpha = 1 / 3) +
         geom_line(
           aes(
@@ -1037,16 +1024,15 @@ server <- function(input, output) {
           #colour = "#7570b3",
           linetype = "solid"
         ) +
-      scale_colour_manual(
-        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
-      ) +
-      scale_fill_manual(
-        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
-      )
+        scale_colour_manual(
+          values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+        ) +
+        scale_fill_manual(
+          values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+        )
     }
 
     plot <- plot +
-      geom_hline(aes(yintercept = 0, colour = "#636363")) +
       #labs(y = "Score") +
       scale_x_date(
         date_minor_breaks = "1 month",
@@ -1177,6 +1163,12 @@ server <- function(input, output) {
         names_from = "metric",
         values_from = "value"
       )
+
+    mentalhealth_data <- mentalhealth_data %>%
+      pivot_wider(
+        names_from = "metric",
+        values_from = "value"
+      )
     
     # gather data together
     data <- energy_data %>%
@@ -1187,12 +1179,15 @@ server <- function(input, output) {
     
     plot <- data %>%
       dplyr::select(
-        irritability,
-        anxiety,
-        depressed,
-        elevated,
+        #irritability,
+        #anxiety,
+        #depressed,
+        #elevated,
         sleep,
         mental_health,
+        subjective_well_being,
+        life_satisfaction,
+        work_satisfaction,
         volume,
         "Calorie expenditure",
         "Calorie intake",
@@ -1210,10 +1205,10 @@ server <- function(input, output) {
       relocate(
         contains("sleep"),
         contains("mental_health"),
-        contains("irritability"),
-        contains("anxiety"),
-        contains("depressed"),
-        contains("elevated"),
+        #contains("irritability"),
+        #contains("anxiety"),
+        #contains("depressed"),
+        #contains("elevated"),
         contains("volume"),
         contains("Calorie expenditure"),
         contains("Calorie intake"),

@@ -166,7 +166,7 @@ calorie_expenditure_all <- calorie_expenditure_data %>%
   dplyr::select(date, calorie_expenditure, status, calorie_intake)
 
 energy_data_with_predictions <- calorie_expenditure_all %>% 
-  filter(calorie_intake > 1000) %>%
+  filter(calorie_intake > 1000 & calorie_expenditure > 1500) %>%
   mutate(
     EnergyDeficit = calorie_expenditure - calorie_intake,
     EnergyDeficitPct = (calorie_intake / calorie_expenditure)
@@ -181,8 +181,8 @@ energy_data_with_predictions <- calorie_expenditure_all %>%
         TRUE ~ NA_character_
       ),
     metric = case_when(
-      metric == "EnergyBurned" ~ "Calorie expenditure",
-      metric == "EnergyConsumed" ~ "Calorie intake",
+      metric == "calorie_expenditure" ~ "Calorie expenditure",
+      metric == "calorie_intake" ~ "Calorie intake",
       metric == "EnergyDeficit" ~ "Calorie deficit (absolute)",
       metric == "EnergyDeficitPct" ~ "Calorie deficit (relative)",
       TRUE ~ metric

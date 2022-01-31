@@ -496,31 +496,35 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
       professional_mastery = replace_na(professional_mastery, 2),
 
       subjective_well_being = elevated + energy + fun + 
-        dog_interaction - depressed - anxiety -
-        conflict,
-      subjective_well_being = (
-        (subjective_well_being * (200 / (4+4+4+2-1-1-1)))
-          - (100 + 4 - 3)
-      ),
+        (2 * dog_interaction) - depressed - anxiety -
+        (2 * conflict),
 
       life_satisfaction = self_acceptance + positive_liberty + negative_liberty +
         value_alignment + health + security +
-        relationship_satisfaction + achievement + learning +
+        relationship_satisfaction + achievement +
         integrity + optimism - shame -
-        suicidality,
-      life_satisfaction = (
-        (life_satisfaction * (200 / (4+4+4+4+4+4+4+4+4+4+4-1-1)))
-          - (100 + 11 - 2)
-      ),
-      
+        (2 * suicidality),
+
       work_satisfaction = energy + value_alignment + security +
         achievement + learning + work_depth +
-        professional_mastery,
+        professional_mastery
+    ) %>% 
+    mutate(
+      subjective_well_being = (
+        (subjective_well_being * (200 / (4+4+4+(2*2)-1-1-(2*1))))
+          - (100 + 3 + (2*1) - 2 - (2*1))
+      ),
+
+      life_satisfaction = (
+        (life_satisfaction * (200 / (4+4+4+4+4+4+4+4+4+4-1-(2*1))))
+          - (100 + 10 - 1 - (2*1))
+      ),
+
       work_satisfaction = (
         (work_satisfaction * (200 / (4+4+4+4+4+4+4)))
           - (100 + 7)
       )
-    ) %>% 
+    ) %>%
     dplyr::select(
       date,
       mental_health,
