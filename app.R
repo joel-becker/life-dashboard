@@ -605,7 +605,8 @@ server <- function(input, output) {
           date = seq(min(.$date), max(.$date), by = "days")
         ),
         by = "date"
-      )
+      ) %>%
+      distinct()
     
     actual_data <- all_data %>%
       filter(status == "actual")
@@ -624,12 +625,12 @@ server <- function(input, output) {
     } else if ("Calorie expenditure" %in% metric_names) {
       plot <- actual_data %>%
         ggplot(aes(x = date, y = value)) +
-        geom_col(alpha = 1 / 3, colour = "#1b9e77") +
+        geom_col(alpha = 1 / 3) +
         theme(legend.position = "none")
     } else if ("Calorie intake" %in% metric_names) {
-      plot <- actual_data %>%
+      plot <- all_data %>%
         ggplot(aes(x = date, y = value)) +
-        geom_col(alpha = 1 / 3, colour = "#1b9e77") +
+        geom_col(alpha = 1 / 3) +
         theme(legend.position = "none")
     }
     
@@ -1079,7 +1080,7 @@ server <- function(input, output) {
     data <- data %>%
       mutate(date = ymd(substr(start, 1, 10))) %>%
       group_by(date, description) %>%
-      summarise(daily_seconds = sum(duration)) %>%
+      dplyr::summarise(daily_seconds = sum(duration)) %>%
       group_by(description) %>%
       mutate(
         daily_hours = daily_seconds / (60 * 60),
@@ -1096,7 +1097,7 @@ server <- function(input, output) {
 
     plot <- data %>%
       ggplot(aes(x = date, y = daily_hours, group = description, colour = description)) +
-      geom_line(alpha = 1 / 3) +
+      geom_point(alpha = 1 / 3) +
       geom_line(
         aes(
           y = exp_moving_avg,
@@ -1153,6 +1154,7 @@ server <- function(input, output) {
     lifecorrelations_numberlags <- input$lifecorrelations_numberlags
     
     energy_data <- energy_data %>%
+      dplyr::select(date, metric, value) %>%
       pivot_wider(
         names_from = "metric",
         values_from = "value"
@@ -1183,11 +1185,11 @@ server <- function(input, output) {
         #anxiety,
         #depressed,
         #elevated,
-        sleep,
-        mental_health,
-        subjective_well_being,
-        life_satisfaction,
-        work_satisfaction,
+        #sleep,
+        "Mental Health",
+        "Subjective Well-Being",
+        "Life Satisfaction",
+        "Work Satisfaction",
         volume,
         "Calorie expenditure",
         "Calorie intake",
@@ -1203,8 +1205,11 @@ server <- function(input, output) {
         !!!generate_lags("Calorie intake", lifecorrelations_numberlags)
       ) %>%
       relocate(
-        contains("sleep"),
-        contains("mental_health"),
+        #contains("sleep"),
+        contains("Mental Health"),
+        contains("Subjective Well-Being"),
+        contains("Life Satisfaction"),
+        contains("Work Satisfaciton"),
         #contains("irritability"),
         #contains("anxiety"),
         #contains("depressed"),

@@ -169,7 +169,7 @@ energy_data_with_predictions <- calorie_expenditure_all %>%
   filter(calorie_intake > 1000 & calorie_expenditure > 1500) %>%
   mutate(
     EnergyDeficit = calorie_expenditure - calorie_intake,
-    EnergyDeficitPct = (calorie_intake / calorie_expenditure)
+    EnergyDeficitPct = (EnergyDeficit / calorie_expenditure)
   ) %>%
   pivot_longer(
     !c(date, status), names_to = "metric", values_to = "value"
@@ -187,7 +187,8 @@ energy_data_with_predictions <- calorie_expenditure_all %>%
       metric == "EnergyDeficitPct" ~ "Calorie deficit (relative)",
       TRUE ~ metric
     )
-  )
+  ) %>%
+  distinct()
 
 # save new energy data 
 write_csv(energy_data_with_predictions, file = "temp/energy_data_with_predictions.csv")
