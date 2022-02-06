@@ -57,6 +57,9 @@ mentalhealth_data <- read_csv(file = "temp/mentalhealth_data.csv")
 work_data <- read_csv(file = "temp/work_data.csv")
 VAR_data <- read_csv(file = "temp/VAR_data.csv")
 
+health_xml <- xmlParse("raw_data/apple_health_export/export.xml")
+df_record <- XML:::xmlAttrsToDataFrame(health_xml["//Record"])
+
 # wrangle data 
 energy_data <- energy_data %>% 
   filter(metric %in% c("Calorie expenditure", "Calorie intake")) %>%
@@ -71,8 +74,22 @@ volume_data <- volume_data %>%
   filter(metric == "volume") %>%
   dplyr::select(date, volume = value, total_energy_burned)
 
+steps_data <- df_record %>%
+  clean_names() %>%
+  filter(type == "HKQuantityTypeIdentifierStepCount") %>%
+  mutate(
+    date = ymd(substr(start_date, 1, 10)),
+    steps = as.numeric(value)
+    ) %>%
+  dplyr::select(date, steps) %>%
+  distinct() %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(steps = sum(steps, na.rm = TRUE))
+
 calorie_expenditure_data <- energy_data %>% 
-  inner_join(volume_data, by = "date")
+  inner_join(volume_data, by = "date") %>% 
+  inner_join(steps_data, by = "date") %>% 
+  inner_join(weight_data, by = "date")
 
 calorie_expenditure_holdout <- calorie_expenditure_data %>% 
   filter(is.na(calorie_expenditure) & date > ymd("2021-01-01")) %>%
@@ -92,11 +109,13 @@ calorie_expenditure_cv <- vfold_cv(calorie_expenditure_train)
 
 calorie_expenditure_recipe <- calorie_expenditure_train %>% 
   recipe(
-    calorie_expenditure ~ calorie_intake + volume + total_energy_burned,
+    calorie_expenditure ~ calorie_intake + volume + total_energy_burned + steps + body_mass,
     data = .
   ) %>% 
-  step_lag(calorie_intake, volume, total_energy_burned, lag = 1:3) %>%
+  #step_lag(calorie_intake, volume, total_energy_burned, lag = 1:3) %>%
   #step_normalise(all_numeric()) %>% 
+  #step_poly(all_predictors(), degree = 1) %>%
+  #step_lag(calorie_expenditure, lag = 1:3) %>%
   step_impute_knn(all_predictors()) %>% 
   prep(training = calorie_expenditure_train, retain = TRUE)
 
@@ -108,8 +127,11 @@ calorie_expenditure_workflow <- workflow() %>%
   add_recipe(calorie_expenditure_recipe) %>% 
   add_model(calorie_expenditure_model)
 
+#calorie_expenditure_fit <- calorie_expenditure_workflow %>% 
+#  last_fit(calorie_expenditure_split)
+
 calorie_expenditure_fit <- calorie_expenditure_workflow %>% 
-  last_fit(calorie_expenditure_split)
+  fit(data = calorie_expenditure_train)
 
 calorie_expenditure_performance <- calorie_expenditure_fit %>% 
   collect_metrics()
@@ -117,7 +139,7 @@ calorie_expenditure_performance <- calorie_expenditure_fit %>%
 # attempt two from here: https://www.tidymodels.org/learn/models/parsnip-ranger-glmnet/#random-forest
 
 calorie_expenditure_fit <- calorie_expenditure_model %>% 
-  fit(calorie_expenditure ~ calorie_intake + volume + total_energy_burned, data = calorie_expenditure_train)
+  fit(calorie_expenditure ~ calorie_intake + volume + total_energy_burned + steps + body_mass, data = calorie_expenditure_train)
 
 calorie_expenditure_test_normalised <- bake(
   calorie_expenditure_recipe, 
@@ -126,7 +148,7 @@ calorie_expenditure_test_normalised <- bake(
   )
 
 calorie_expenditure_test_results <- calorie_expenditure_test %>%
-  select(calorie_expenditure) %>% 
+  dplyr::select(calorie_expenditure) %>% 
   bind_cols(
     predict(calorie_expenditure_fit, new_data = calorie_expenditure_test_normalised)
   )
