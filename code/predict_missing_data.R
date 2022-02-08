@@ -87,13 +87,13 @@ steps_data <- df_record %>%
   dplyr::summarise(steps = sum(steps, na.rm = TRUE))
 
 calorie_expenditure_data <- energy_data %>% 
-  inner_join(volume_data, by = "date") %>% 
-  inner_join(steps_data, by = "date") %>% 
-  inner_join(weight_data, by = "date")
+  full_join(volume_data, by = "date") %>% 
+  full_join(steps_data, by = "date") %>% 
+  full_join(weight_data, by = "date")
 
 calorie_expenditure_holdout <- calorie_expenditure_data %>% 
   filter(is.na(calorie_expenditure) & date > ymd("2021-01-01")) %>%
-  select(-calorie_expenditure) %>%
+  dplyr::select(-calorie_expenditure) %>%
   drop_na()
 
 calorie_expenditure_data <- calorie_expenditure_data %>% drop_na()
@@ -168,7 +168,7 @@ calorie_expenditure_holdout_results <- calorie_expenditure_holdout %>%
     )
   ) %>%
   mutate(status = "prediction") %>%
-  select(date, calorie_expenditure = .pred, status)
+  dplyr::select(date, calorie_expenditure = .pred, status)
 
 calorie_expenditure_all <- calorie_expenditure_data %>% 
   bind_rows(calorie_expenditure_holdout_results) %>%

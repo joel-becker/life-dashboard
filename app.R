@@ -1079,7 +1079,7 @@ server <- function(input, output) {
 
     data <- data %>%
       mutate(date = ymd(substr(start, 1, 10))) %>%
-      group_by(date, description) %>%
+      dplyr::group_by(date, description) %>%
       dplyr::summarise(daily_seconds = sum(duration)) %>%
       dplyr::group_by(description) %>%
       mutate(
