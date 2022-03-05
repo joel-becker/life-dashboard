@@ -474,6 +474,8 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
         grepl("Excursion to the Exumas", note) ~ 4.5,
         grepl("Miti's dream job offer", note) ~ 4.5,
         grepl("excited for Miti", note) ~ 4.0,
+        grepl("Back in Nassau", note) ~ 4.0,
+        grepl("Atlantis water park", note) ~ 4.5,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
