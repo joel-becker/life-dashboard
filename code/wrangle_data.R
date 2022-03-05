@@ -109,7 +109,7 @@ wrangle_weight_data <- function(data){
     filter(type == 'BodyMass') %>%
     dplyr::select(date, value) %>%
     join_dates() %>%
-    #fill("value") %>%
+    fill("value") %>%
     mutate(value = na.approx(value * 2.20462, na.rm = FALSE)) %>%
     dplyr::rename(body_mass = value) %>%
     arrange(date) %>%
@@ -467,6 +467,13 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
         grepl("big welcome dinner for FTX fellows", note) ~ 4.0,
         grepl("going to war with FTX fellows", note) ~ 4.0,
         grepl("amazing opportunity in the Bahamas", note) ~ 4.0,
+        grepl("opulent party", note) ~ 4.0,
+        grepl("blissful meditation experience", note) ~ 4.5,
+        grepl("Received great professional offer", note) ~ 4.0,
+        grepl("workday; EA dinner", note) ~ 4.0,
+        grepl("Excursion to the Exumas", note) ~ 4.5,
+        grepl("Miti's dream job offer", note) ~ 4.5,
+        grepl("excited for Miti", note) ~ 4.0,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
@@ -555,7 +562,8 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         metric == "mental_health" ~ "Mental Health",
         metric == "subjective_well_being" ~ "Subjective Well-Being",
         metric == "life_satisfaction" ~ "Life Satisfaction",
-        metric == "work_satisfaction" ~ "Work Satisfaction"
+        metric == "work_satisfaction" ~ "Work Satisfaction",
+        metric == "sleep" ~ "Sleep"
       )
     ) %>% 
     drop_na(metric)
@@ -571,11 +579,7 @@ wrangle_sleep_data <- function(data){
 wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
   # wrangles VAR data
   energy_data <- energy_data %>%
-    dplyr::select(-positive_value) %>%
-    pivot_wider(
-      names_from = "metric",
-      values_from = "value"
-    )
+    dplyr::select(-status)
   
   volume_data <- volume_data %>%
     pivot_wider(
@@ -599,9 +603,10 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
       #Protein, Sugar,
       calorie_expenditure, calorie_intake, #water,
       #anxiety, depressed, elevated,
-      sleep, mental_health, #therapy,
+      mental_health, subjective_well_being, life_satisfaction, work_satisfaction, sleep, #therapy,
       volume#, total_energy_burned
     ) %>%
+    arrange(date) %>%
     filter(date >= ymd("2021-06-27") & date < max(date)) %>%
     mutate(
       calorie_expenditure = na.approx(calorie_expenditure, date),
