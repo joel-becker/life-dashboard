@@ -17,13 +17,10 @@ new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
 if (length(new.packages)) install.packages(new.packages)
 lapply(packages, library, character.only = TRUE)
 
-# set wd
-setwd("/Users/joel/projects/life-dashboard")
-
 # load helper files
 source("code/wrangle_data.R")
 source("code/wrangle_data_toggl.R")
-source("path_names.R")
+source("path_and_package_names.R")
 
 
 ########################################################
@@ -65,15 +62,17 @@ energy_data <- wrangle_energy_data(df_record)
 
 nutrition_data <- wrangle_nutrition_data(df_record)
 
-mentalhealth_data <- wrangle_mentalhealth_data(
+wellbeing_data <- wrangle_mentalhealth_data(
   mentalhealth_csv,
   custom_mentalhealth_entries_csv,
   custom_mentalhealth_symptoms_csv
   )
 
+sleep_data <- wrangle_sleep_data(mentalhealth_csv)
+
 work_data <- wrangle_toggl_data()
 
-VAR_data <- wrangle_VAR_data(energy_data, mentalhealth_data, volume_data)
+VAR_data <- wrangle_VAR_data(energy_data, wellbeing_data, sleep_data, volume_data)
 
 print("-----")
 print("Successfully wrangled data!")
@@ -89,7 +88,8 @@ write_csv(exercise_data, file = "temp/exercise_data.csv")
 write_csv(volume_data, file = "temp/volume_data.csv")
 write_csv(energy_data, file = "temp/energy_data.csv")
 write_csv(nutrition_data, file = "temp/nutrition_data.csv")
-write_csv(mentalhealth_data, file = "temp/mentalhealth_data.csv")
+write_csv(wellbeing_data, file = "temp/wellbeing_data.csv")
+write_csv(sleep_data, file = "temp/sleep_data.csv")
 write_csv(work_data, file = "temp/work_data.csv")
 write_csv(VAR_data, file = "temp/VAR_data.csv")
 

@@ -21,7 +21,7 @@ lapply(packages, library, character.only = TRUE)
 setwd("/Users/joel/projects/life-dashboard")
 
 # source
-source("path_names.R")
+source("path_and_package_names.R")
 
 
 ########################################################
@@ -188,17 +188,29 @@ wrangle_energy_data <- function(data){
     spread(type, value) %>%
     mutate(
       ActiveEnergyBurned = ActiveEnergyBurned,
-      DietaryEnergyConsumed = DietaryEnergyConsumed *
-        (1 + 0.165 *
-        (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
-        time_length(interval(min(date), max(date)), "week"))),
+      DietaryEnergyConsumed = case_when(
+        date >= "2021/12/15" ~ DietaryEnergyConsumed *
+          (1 + 0.16 *
+          (0.4 + 1.2 * time_length(interval(date, "2022/01/18"), "week") /
+          time_length(interval(min(date), "2022/01/18"), "week"))),
+        TRUE ~ DietaryEnergyConsumed * (1 + 0.15)
+      ),
+      #DietaryEnergyConsumed = DietaryEnergyConsumed *
+      #  (1 + 0.165 *
+      #  (0.6 + 0.8 * time_length(interval(date, max(date)), "week") /
+      #  time_length(interval(min(date), max(date)), "week"))),
       EnergyBurned = ActiveEnergyBurned + BasalEnergyBurned,
+      EnergyBurned = case_when(
+        EnergyBurned > 1900 ~ EnergyBurned,
+        TRUE ~ NA_real_
+      ),
       EnergyConsumed = DietaryEnergyConsumed,
       EnergyDeficit = EnergyBurned - EnergyConsumed,
       EnergyDeficitPct = (EnergyDeficit / EnergyBurned)#,
       #EnergyDeficitCat = if_else(EnergyDeficit > 0, 'Deficit', 'Surplus')
     ) %>%
-    filter(EnergyConsumed > 0) %>%
+    filter(EnergyConsumed > 1000) %>%
+    #filter(is.na(EnergyBurned) | EnergyBurned > 1900) %>%
     dplyr::select(-c(ActiveEnergyBurned, BasalEnergyBurned, DietaryEnergyConsumed)) %>%
     pivot_longer(!date, names_to = "metric", values_to = "value") %>%
     mutate(
@@ -476,6 +488,23 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
         grepl("excited for Miti", note) ~ 4.0,
         grepl("Back in Nassau", note) ~ 4.0,
         grepl("Atlantis water park", note) ~ 4.5,
+        grepl("Relaxing day with Miti", note) ~ 4.0,
+        grepl("Miti's fancy birthday dinner", note) ~ 4.5,
+        grepl("Dinner with Ben, Aria", note) ~ 4.0,
+        grepl("Misha and Joel's", note) ~ 4.0,
+        grepl("call with immigration lawyer", note) ~ 4.0,
+        grepl("excited for conferences", note) ~ 4.0,
+        grepl("seeing Greta", note) ~ 4.5,
+        grepl("friends back-to-back, through EAGxBoston", note) ~ 4.5,
+        grepl("First full day of EAGx", note) ~ 4.5,
+        grepl("Last day of EAGxBoston", note) ~ 4.5,
+        grepl("job contract meeting", note) ~ 4.0,
+        grepl("Booba and Miti", note) ~ 4.5,
+        grepl("Walk around Kenwood", note) ~ 4.5,
+        grepl("First day of EAG London", note) ~ 4.0,
+        grepl("Second day of EAG London", note) ~ 4.0,
+        grepl("FTX agree to guarantee", note) ~ 4.0,
+        grepl("Day after great immigration news", note) ~ 4.5,
         TRUE ~ as.numeric(elevated)
       ),
       # explanation for mental health metric:
@@ -490,7 +519,6 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
       #    (0.45*(anxiety^6.6582)) +
       #    (0.45*(depressed^6.6582))
       #)^0.5,
-      sleep = replace(sleep, sleep == 0.0, NA),
       positive_value = case_when(
         mental_health > 0 ~ "Net positive",
         mental_health <= 0 ~ "Net negative",
@@ -504,43 +532,47 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
       optimism = replace_na(optimism, 2),
       professional_mastery = replace_na(professional_mastery, 2),
 
-      subjective_well_being = elevated + energy + fun + 
-        (2 * dog_interaction) - depressed - anxiety -
-        (2 * conflict),
+      subjective_well_being = (elevated^2) +
+        (energy^2) +
+        (fun^2) + 
+        (2 * 2 * dog_interaction) -
+        (depressed^2) -
+        (anxiety^2) -
+        (2 * 2 * conflict),
 
-      life_satisfaction = self_acceptance + positive_liberty + negative_liberty +
-        value_alignment + health + security +
-        relationship_satisfaction + achievement +
-        integrity + optimism - shame -
-        (2 * suicidality),
+      life_satisfaction = (self_acceptance) +
+        (0.5 * positive_liberty) +
+        (0.5 * negative_liberty) +
+        (4 * value_alignment) +
+        (2 * health) +
+        (2 * security) +
+        (2 * relationship_satisfaction) +
+        (integrity) +
+        (optimism) -
+        (shame) -
+        (4 * 2 * suicidality),
 
-      work_satisfaction = energy + value_alignment + security +
-        achievement + learning + work_depth +
-        professional_mastery
+      work_satisfaction = (0.5 * energy) +
+        (4 * value_alignment) +
+        (2 * security) +
+        (2 * achievement) +
+        (0.5 * learning) +
+        (work_depth) +
+        (2 * professional_mastery)
     ) %>% 
     mutate(
-      subjective_well_being = (
-        (subjective_well_being * (200 / (4+4+4+(2*2)-1-1-(2*1))))
-          - (100 + 3 + (2*1) - 2 - (2*1))
-      ),
+      subjective_well_being = rescale(subjective_well_being, to = c(-100, 100)),
 
-      life_satisfaction = (
-        (life_satisfaction * (200 / (4+4+4+4+4+4+4+4+4+4-1-(2*1))))
-          - (100 + 10 - 1 - (2*1))
-      ),
+      life_satisfaction = rescale(life_satisfaction, to = c(-100, 100)),
 
-      work_satisfaction = (
-        (work_satisfaction * (200 / (4+4+4+4+4+4+4)))
-          - (100 + 7)
-      )
+      work_satisfaction = rescale(work_satisfaction, to = c(-100, 100))
     ) %>%
     dplyr::select(
       date,
       mental_health,
       subjective_well_being,
       life_satisfaction,
-      work_satisfaction,
-      sleep#,
+      work_satisfaction
       #note
     )
 
@@ -564,8 +596,7 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
         metric == "mental_health" ~ "Mental Health",
         metric == "subjective_well_being" ~ "Subjective Well-Being",
         metric == "life_satisfaction" ~ "Life Satisfaction",
-        metric == "work_satisfaction" ~ "Work Satisfaction",
-        metric == "sleep" ~ "Sleep"
+        metric == "work_satisfaction" ~ "Work Satisfaction"
       )
     ) %>% 
     drop_na(metric)
@@ -575,13 +606,32 @@ wrangle_mentalhealth_data <- function(data, custom_entries, custom_symptoms){
 
 wrangle_sleep_data <- function(data){
   # wrangles sleep data
+  data <- data %>% 
+    clean_names() %>% 
+    mutate(
+      date = as_date(date_yyyy_mm_dd),
+      sleep = replace(sleep, sleep == 0.0, NA)
+    ) %>% 
+    select(date, sleep)
   
+  return(data)
 }
 
-wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
+wrangle_VAR_data <- function(energy_data, wellbeing_data, sleep_data, volume_data) {
   # wrangles VAR data
   energy_data <- energy_data %>%
-    dplyr::select(-status)
+    dplyr::select(-positive_value) %>%
+    pivot_wider(
+      names_from = "metric",
+      values_from = "value"
+    )
+  
+  wellbeing_data <- wellbeing_data %>%
+    select(-positive_value) %>%
+    pivot_wider(
+      names_from = "metric",
+      values_from = "value"
+    )
   
   volume_data <- volume_data %>%
     pivot_wider(
@@ -589,15 +639,10 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
       values_from = "value"
     )
   
-  mentalhealth_data <- mentalhealth_data %>%
-    pivot_wider(
-      names_from = "metric",
-      values_from = "value"
-    )
-  
   data <- energy_data %>%
     #full_join(nutrition_data, by = "date") %>%
-    full_join(mentalhealth_data, by = "date") %>%
+    full_join(wellbeing_data, by = "date") %>%
+    full_join(sleep_data, by = "date") %>%
     full_join(volume_data, by = "date") %>%
     clean_names() %>%
     dplyr::select(
@@ -609,7 +654,7 @@ wrangle_VAR_data <- function(energy_data, mentalhealth_data, volume_data) {
       volume#, total_energy_burned
     ) %>%
     arrange(date) %>%
-    filter(date >= ymd("2021-06-27") & date < max(date)) %>%
+    filter(date >= ymd("2021-12-17") & date < max(date)) %>%
     mutate(
       calorie_expenditure = na.approx(calorie_expenditure, date),
       calorie_intake = na.approx(calorie_intake, date),

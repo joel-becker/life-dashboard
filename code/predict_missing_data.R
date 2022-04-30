@@ -18,9 +18,10 @@ packages <- c(
   "lubridate", # dates
   "tidymodels", 
   "ranger", #not sure
-  "workflow", # ML workflow
+  #"workflow", # ML workflow
   "parsnip", # specify model 
   "janitor", # clean names
+  "XML",
   "rsample" # for test/train split
   )
 new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
@@ -31,7 +32,7 @@ lapply(packages, library, character.only = TRUE)
 setwd("/Users/joel/projects/life-dashboard")
 
 # source
-source("path_names.R")
+source("path_and_package_names.R")
 
 
 ########################################################
@@ -54,8 +55,6 @@ volume_data <- read_csv(file = "temp/volume_data.csv")
 energy_data <- read_csv(file = "temp/energy_data.csv")
 nutrition_data <- read_csv(file = "temp/nutrition_data.csv")
 mentalhealth_data <- read_csv(file = "temp/mentalhealth_data.csv")
-work_data <- read_csv(file = "temp/work_data.csv")
-VAR_data <- read_csv(file = "temp/VAR_data.csv")
 
 health_xml <- xmlParse("raw_data/apple_health_export/export.xml")
 df_record <- XML:::xmlAttrsToDataFrame(health_xml["//Record"])
@@ -89,7 +88,8 @@ steps_data <- df_record %>%
 calorie_expenditure_data <- energy_data %>% 
   full_join(volume_data, by = "date") %>% 
   full_join(steps_data, by = "date") %>% 
-  full_join(weight_data, by = "date")
+  full_join(weight_data, by = "date") %>% 
+  arrange(date)
 
 calorie_expenditure_holdout <- calorie_expenditure_data %>% 
   filter(is.na(calorie_expenditure) & date > ymd("2021-01-01")) %>%

@@ -26,7 +26,7 @@ library(togglr)
 setwd("/Users/joel/projects/life-dashboard")
 
 # source
-source("path_names.R")
+source("path_and_package_names.R")
 
 
 ########################################################
@@ -106,7 +106,27 @@ wrangle_toggl_data <- function(api_token = toggl_token, since = ymd_hms("2022-01
   # wrangles toggl data 
 
   data <- get_toggl_data(api_token, since, until) %>%
-    clean_toggl_data()
+    clean_toggl_data() %>% 
+    mutate(
+      "Work or break" = case_when(
+        project_name == "Work" ~ "Work",
+        project_name == "Ratio Breaks" & description == "Work" ~ "Work",
+        project_name == "Break" ~ "Break",
+        project_name == "Ratio Breaks" & description == "Break" ~ "Break"
+      ),
+      "Project type" = case_when(
+        description == "Overhead" ~ "Overhead",
+        description == "FTX" ~ "FTX",
+        description == "DRI" |
+          description == "SSO" |
+          description == "Forethought" |
+          description == "Coursework"
+          ~ "NYU",
+        description == "Personal data science projects."
+          ~ "Personal data science projects",
+        description == "Cool reading." ~ "Cool reading",
+      )
+    )
   
   return(data)
 }

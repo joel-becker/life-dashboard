@@ -11,6 +11,10 @@
 ######################## Set-up ########################
 ########################################################
 
+# load helper files
+source("code/app_functions.R")
+source("path_and_package_names.R")
+
 # load libraries
 library("shiny")
 library("ggplot2")
@@ -37,9 +41,6 @@ source_url(paste0(
   "var-tools/master/R/extract_varirf.R"
   ))
 
-# load helper files
-source("code/app_functions.R")
-
 # don't load functions in R folder
 # TODO: maybe change this later to write chart
 options(shiny.autoload.r = FALSE)
@@ -55,7 +56,8 @@ if (!("weight_data.csv" %in% list.files("temp")) ||
     !("volume_data.csv" %in% list.files("temp")) ||
     !("energy_data.csv" %in% list.files("temp")) ||
     !("nutrition_data.csv" %in% list.files("temp")) ||
-    !("mentalhealth_data.csv" %in% list.files("temp")) ||
+    !("wellbeing_data.csv" %in% list.files("temp")) ||
+    !("sleep_data.csv" %in% list.files("temp")) ||
     !("work_data.csv" %in% list.files("temp")) ||
     !("VAR_data.csv" %in% list.files("temp"))) {
   source("code/tables_exporter.R")
@@ -66,7 +68,8 @@ if (!("weight_data.csv" %in% list.files("temp")) ||
   #energy_data <- read_csv("temp/energy_data.csv")
   energy_data <- read_csv("temp/energy_data_with_predictions.csv")
   nutrition_data <- read_csv("temp/nutrition_data.csv")
-  mentalhealth_data <- read_csv("temp/mentalhealth_data.csv")
+  wellbeing_data <- read_csv("temp/wellbeing_data.csv")
+  sleep_data <- read_csv("temp/sleep_data.csv")
   work_data <- read_csv("temp/work_data.csv")
   VAR_data <- read_csv("temp/VAR_data.csv")
 }
@@ -178,7 +181,7 @@ ui <- fluidPage(
       )
     ),
 
-    ## correlations sub-menu
+    ## diet sub-menu
     navbarMenu(
       "Diet",
       icon = icon("utensils"),
@@ -285,48 +288,84 @@ ui <- fluidPage(
       ),
 
     ## mental health sub-menu
-    tabPanel(
+    navbarMenu(
       "Mental health",
-      fluid = TRUE,
       icon = icon("grin-beam-sweat"),
-      sidebarLayout(
-        sidebarPanel(
-          titlePanel("Options"),
-          selectInput(
-            "wellbeing_metric",
-            label = "Choose well-being variable",
-            c(
-              mentalhealth_data %>%
-                pull(metric) %>%
-                unique()
+
+      ### well-being
+      tabPanel(
+        "Well-being",
+        fluid = TRUE,
+        
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Options"),
+            selectInput(
+              "wellbeing_metric",
+              label = "Choose well-being variable",
+              c(
+                wellbeing_data %>%
+                  pull(metric) %>%
+                  unique()
+              ),
+              multiple = TRUE,
+              selected = "Mental Health"
             ),
-            multiple = TRUE,
-            selected = "Mental Health"
+            numericInput(
+              "rollavg_length_wellbeing",
+              label = "Exponential moving average hyperparameter value",
+              value = 0.3,
+              min = 0.01,
+              max = 1,
+              step = 0.01
+            )
           ),
-          numericInput(
-            "rollavg_length_mentalhealth",
-            label = "Exponential moving average hyperparameter value",
-            value = 0.3,
-            min = 0.01,
-            max = 1,
-            step = 0.01
+          mainPanel(
+            h1("Well-being"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "wellbeing_plot"#,
+                #hover = hoverOpts(
+                #  "plot_hover",
+                #  delay = 100,
+                #  delayType = "debounce"
+                #)
+              )#,
+              #uiOutput("hover_info")
+            ),
+            includeMarkdown("markdown/wellbeing.md")
           )
-        ),
-        mainPanel(
-          h1("Mental health"),
-          div(
-            style = "position:relative",
-            plotOutput(
-              "mentalhealth_plot"#,
-              #hover = hoverOpts(
-              #  "plot_hover",
-              #  delay = 100,
-              #  delayType = "debounce"
-              #)
-            )#,
-            #uiOutput("hover_info")
+        )
+      ),
+
+      ### sleep
+      tabPanel(
+        "Sleep",
+        fluid = TRUE,
+
+        sidebarLayout(
+          sidebarPanel(
+            titlePanel("Options"),
+            numericInput(
+              "rollavg_length_sleep",
+              label = "Exponential moving average hyperparameter value",
+              value = 0.1,
+              min = 0.01,
+              max = 1,
+              step = 0.01
+            )
           ),
-          includeMarkdown("markdown/mentalhealth.md")
+          mainPanel(
+            h1("Sleep"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                "sleep_plot"
+              )
+            ),
+            includeMarkdown("markdown/sleep.md")
+          )
         )
       )
     ),
@@ -339,6 +378,18 @@ ui <- fluidPage(
       sidebarLayout(
         sidebarPanel(
           titlePanel("Options"),
+          selectInput(
+            "work_metric",
+            label = "Choose work metric",
+            c("Work or break", "Project type"),
+            selected = "Project type"
+          ),
+          radioButtons(
+            "work_include_zero",
+            label = "Include zero-hour data points?",
+            choices = c("Yes" = "Yes", "No" = "No"),
+            selected = "Yes"
+          ),
           numericInput(
             "rollavg_length_work",
             label = "Exponential moving average hyperparameter value",
@@ -909,18 +960,14 @@ server <- function(input, output) {
     return(plot)
   })
   
-  # mental health plot
-  output$mentalhealth_plot <- renderPlot({
-    data <- mentalhealth_data
-    rollavg_length_mentalhealth <- input$rollavg_length_mentalhealth
-    metric_names_mentalhealth <- input$wellbeing_metric
-
-    #mentalhealth_data <- mentalhealth_data %>%
-    #  dplyr::select(-c("sleep", "note", "positive_value")) %>%
-    #  pivot_longer(!date, names_to = "metric", values_to = "value")
+  # well-being plot
+  output$wellbeing_plot <- renderPlot({
+    data <- wellbeing_data
+    rollavg_length_wellbeing <- input$rollavg_length_wellbeing
+    metric_names_wellbeing <- input$wellbeing_metric
     
-    if (length(metric_names_mentalhealth) == 0) {
-      filtered_data <- mentalhealth_data %>%
+    if (length(metric_names_wellbeing) == 0) {
+      filtered_data <- wellbeing_data %>%
         filter(metric == "Mental Health") %>%
         drop_na() %>%
         mutate(
@@ -930,17 +977,16 @@ server <- function(input, output) {
               value,
               date,
               d,
-              epsilon = rollavg_length_mentalhealth
+              epsilon = rollavg_length_wellbeing
             )
           )
         )
-    #} else if ("Mental Health" %in% metric_names_mentalhealth) {
-    } else if (length(metric_names_mentalhealth) > 0) {
+    } else if (length(metric_names_wellbeing) > 0) {
 
       data = data.frame()
 
-      for (i in metric_names_mentalhealth) {
-        filtered_data <- mentalhealth_data %>%
+      for (i in metric_names_wellbeing) {
+        filtered_data <- wellbeing_data %>%
           filter(metric == i) %>%
           drop_na() %>%
           mutate(
@@ -950,7 +996,7 @@ server <- function(input, output) {
                 value,
                 date,
                 d,
-                epsilon = rollavg_length_mentalhealth
+                epsilon = rollavg_length_wellbeing
               )
             )
           )
@@ -960,8 +1006,8 @@ server <- function(input, output) {
 
       filtered_data <- data
     } else {
-        filtered_data <- mentalhealth_data %>%
-          filter(metric %in% metric_names_mentalhealth) %>%
+        filtered_data <- wellbeing_data %>%
+          filter(metric %in% metric_names_wellbeing) %>%
           drop_na() %>%
           group_by(metric) %>%
           mutate(
@@ -971,14 +1017,14 @@ server <- function(input, output) {
                 value,
                 date,
                 d,
-                epsilon = rollavg_length_mentalhealth
+                epsilon = rollavg_length_wellbeing
               )
             )
           )
     }
 
     # if single metric, use positive/negative bars
-    if (length(metric_names_mentalhealth) == 1) {
+    if (length(metric_names_wellbeing) == 1) {
       plot <- filtered_data %>%
         ggplot(aes(x = date, y = value, fill = positive_value, colour = positive_value)) +
         geom_hline(aes(yintercept = 0), fill = "#636363", colour = "#636363") +
@@ -1009,7 +1055,7 @@ server <- function(input, output) {
     }
 
     # if multiple metric, use points by metric
-    if (length(metric_names_mentalhealth) > 1) {
+    if (length(metric_names_wellbeing) > 1) {
       plot <- filtered_data %>%
         ggplot(aes(x = date, y = value, colour = metric, group = metric)) +
         geom_hline(aes(yintercept = 0), colour = "#636363") +
@@ -1026,10 +1072,14 @@ server <- function(input, output) {
           linetype = "solid"
         ) +
         scale_colour_manual(
-          values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+          values = c(
+            "#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"
+            )
         ) +
         scale_fill_manual(
-          values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666")
+          values = c(
+            "#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"
+            )
         )
     }
 
@@ -1071,17 +1121,107 @@ server <- function(input, output) {
     return(plot)
   })
   
+  # sleep plot
+  output$sleep_plot <- renderPlot({
+    data <- sleep_data
+    rollavg_length_sleep <- input$rollavg_length_sleep
+    
+    data <- sleep_data %>%
+      drop_na() %>%
+      mutate(
+        exp_moving_avg = map_dbl(
+          date,
+          function(d) rolling_weighted_average(
+            sleep,
+            date,
+            d,
+            epsilon = rollavg_length_sleep
+          )
+        )
+      )
+
+    plot <- data %>%
+      ggplot(aes(x = date, y = sleep)) +
+      geom_point(alpha = 1 / 3, fill = "#1b9e77", colour = "#1b9e77") +
+      geom_line(
+        aes(
+          y = exp_moving_avg,
+          fill = NULL
+        ),
+        size = 1,
+        colour = "#7570b3",
+        linetype = "solid"
+      ) +
+      #labs(y = "Score") +
+      scale_x_date(
+        date_minor_breaks = "1 month",
+        date_labels =  "%b %Y",
+        expand = c(0,0)
+      ) +
+      scale_y_continuous(
+        lim = c(0, NA),
+        breaks = seq(0, 20, 2),
+        expand = c(0, 0)
+      ) +
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.key.size = unit(1.5, "cm"), # change legend key size
+        legend.key.height = unit(1, "cm"), # change legend key height
+        legend.key.width = unit(1.5, "cm"), # change legend key width
+        legend.text = element_text(size = 14)
+      ) +
+      guides(
+        color = guide_legend(
+          ncol = 1#,
+          #byrow = TRUE
+        )
+      )
+    
+    return(plot)
+  })
+  
   # work plot
   output$work_plot <- renderPlot({
     # to start, simple line chart of breaks and work?
     data <- work_data
     rollavg_length_work <- input$rollavg_length_work
+    metric_names_work <- input$work_metric
+    include_zero_work <- input$work_include_zero
 
     data <- data %>%
       mutate(date = ymd(substr(start, 1, 10))) %>%
-      dplyr::group_by(date, description) %>%
+      dplyr::select(date, duration, categories = metric_names_work) %>% 
+      drop_na() %>% 
+      dplyr::group_by(date, categories) %>%
       dplyr::summarise(daily_seconds = sum(duration)) %>%
-      dplyr::group_by(description) %>%
+      full_join(
+        data.frame(
+          date = rep(seq(min(.$date), max(.$date), by = "days"), length(unique(.$categories))),
+          categories = rep(unique(.$categories), times = max(.$date) - min(.$date) + 1)
+        ),
+        by = c("date", "categories")
+      ) %>%
+      arrange(date, categories)
+      
+    if (include_zero_work == "Yes") {
+      data <- data %>% 
+        dplyr::group_by(date) %>% 
+        mutate(n_recordings_date = sum(!is.na(daily_seconds))) %>% 
+        dplyr::ungroup() %>% 
+        filter(n_recordings_date != 0) %>% 
+        mutate(daily_seconds = replace_na(daily_seconds, 0))
+    }
+
+    data <- data %>%
+      dplyr::group_by(categories) %>%
+      drop_na() %>% 
       mutate(
         daily_hours = daily_seconds / (60 * 60),
         exp_moving_avg = map_dbl(
@@ -1093,25 +1233,38 @@ server <- function(input, output) {
             epsilon = rollavg_length_work
           )
         )
-      )
+      ) %>%
+      full_join(
+        data.frame(
+          date = rep(seq(min(.$date), max(.$date), by = "days"), length(unique(.$categories))),
+          categories = rep(unique(.$categories), times = max(.$date) - min(.$date) + 1)
+        ),
+        by = c("date", "categories")
+      ) %>%
+      arrange(date, categories)
 
     plot <- data %>%
-      ggplot(aes(x = date, y = daily_hours, group = description, colour = description)) +
+      ggplot(aes(
+        x = date,
+        y = daily_hours,
+        group = categories,
+        colour = categories
+        )) +
       geom_point(alpha = 1 / 3) +
       geom_line(
         aes(
           y = exp_moving_avg,
-          fill = NA,
-          colour = description,
-          group = description
-        )#,
-        #size = 1,
-        #colour = "#7570b3",
-        #linetype = "solid"
+          #fill = NA,
+          colour = categories,
+          group = categories
+        )
       ) +
       labs(y = "Hours spent") +
       scale_fill_manual(
-        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a")
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e")
+      ) +
+      scale_color_manual(
+        values = c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e")
       ) +
       scale_x_date(
         date_minor_breaks = "1 month",
@@ -1136,6 +1289,12 @@ server <- function(input, output) {
         legend.key.height = unit(1, "cm"), # change legend key height
         legend.key.width = unit(1.5, "cm"), # change legend key width
         legend.text = element_text(size = 14)
+      ) +
+      guides(
+        color = guide_legend(
+          nrow = ceiling(length(unique(data$categories)) / 2),
+          byrow = TRUE
+        )
       )
     
     return(plot)
@@ -1166,7 +1325,7 @@ server <- function(input, output) {
         values_from = "value"
       )
 
-    mentalhealth_data <- mentalhealth_data %>%
+    wellbeing_data <- wellbeing_data %>%
       pivot_wider(
         names_from = "metric",
         values_from = "value"
@@ -1174,7 +1333,7 @@ server <- function(input, output) {
     
     # gather data together
     data <- energy_data %>%
-      full_join(mentalhealth_data, by = "date") %>%
+      full_join(wellbeing_data, by = "date") %>%
       full_join(volume_data, by = "date")
     
     # plot correlation plot
@@ -1197,13 +1356,13 @@ server <- function(input, output) {
         #Protein,
         #Sugar
       ) %>%
-      mutate(
-        !!!generate_lags(sleep, lifecorrelations_numberlags),
-        !!!generate_lags(mental_health, lifecorrelations_numberlags),
-        !!!generate_lags(volume, lifecorrelations_numberlags),
-        !!!generate_lags("Calorie expenditure", lifecorrelations_numberlags),
-        !!!generate_lags("Calorie intake", lifecorrelations_numberlags)
-      ) %>%
+      #mutate(
+      #  !!!generate_lags(sleep, lifecorrelations_numberlags),
+      #  !!!generate_lags(mental_health, lifecorrelations_numberlags),
+      #  !!!generate_lags(volume, lifecorrelations_numberlags),
+      #  !!!generate_lags("Calorie expenditure", lifecorrelations_numberlags),
+      #  !!!generate_lags("Calorie intake", lifecorrelations_numberlags)
+      #) %>%
       relocate(
         #contains("sleep"),
         contains("Mental Health"),
@@ -1281,7 +1440,7 @@ server <- function(input, output) {
   #output$hover_info <- renderUI({
   #  hover <- input$plot_hover
   #  point <- nearPoints(
-  #    mentalhealth_data,
+  #    wellbeing_data,
   #    hover,
   #    threshold = 5,
   #    maxpoints = 1,
