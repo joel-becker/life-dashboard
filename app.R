@@ -1397,7 +1397,7 @@ server <- function(input, output) {
     VAR_impulse <- input$VAR_impulse
     VAR_response <- input$VAR_response
     
-    VAR <- VAR(VAR_data, type = "both")
+    VAR <- vars::VAR(VAR_data, type = "both")
     irf <- irf(
       VAR,
       impulse = VAR_impulse,

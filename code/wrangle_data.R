@@ -527,6 +527,18 @@ calculate_mentalhealth_metrics <- function(data, custom_entries, custom_symptoms
     ) %>%
     full_join(custom_data, by = "date") %>%
     mutate(
+      dog_interaction = case_when(
+        !is.na(dog_interaction) ~ dog_interaction,
+        TRUE ~ 1
+        ),
+      conflict = case_when(
+        !is.na(conflict) ~ conflict,
+        TRUE ~ 1
+        ),
+      suicidality = case_when(
+        !is.na(suicidality) ~ suicidality,
+        TRUE ~ 1
+        ),
       work_depth = replace_na(work_depth, 2),
       integrity = replace_na(integrity, 2),
       optimism = replace_na(optimism, 2),
@@ -612,7 +624,7 @@ wrangle_sleep_data <- function(data){
       date = as_date(date_yyyy_mm_dd),
       sleep = replace(sleep, sleep == 0.0, NA)
     ) %>% 
-    select(date, sleep)
+    dplyr::select(date, sleep)
   
   return(data)
 }
@@ -627,7 +639,7 @@ wrangle_VAR_data <- function(energy_data, wellbeing_data, sleep_data, volume_dat
     )
   
   wellbeing_data <- wellbeing_data %>%
-    select(-positive_value) %>%
+    dplyr::select(-positive_value) %>%
     pivot_wider(
       names_from = "metric",
       values_from = "value"
