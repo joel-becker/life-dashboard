@@ -1,4 +1,4 @@
-goals_list_2024 <- c(
+goals_list_2024_weightlifting <- c(
   "Bench Press (Barbell)" = 260,
   "Overhead Press (Barbell)" = 140,
   "Squat (Barbell)" = 260,
@@ -7,7 +7,7 @@ goals_list_2024 <- c(
   "Chin Up" = 260
 )
 
-plot_goals_weightlifting <- function(weightlifting_data, goals_list=goals_list_2024) {
+plot_goals_weightlifting <- function(weightlifting_data, goals_list=goals_list_2024_weightlifting) {
   # Filter data for relevant exercises
   weightlifting_data <- weightlifting_data %>%
     filter(exercise_name %in% names(goals_list)) %>%
@@ -37,13 +37,16 @@ plot_goals_weightlifting <- function(weightlifting_data, goals_list=goals_list_2
   # Calculate cumulative max for 2024
   data_2024 <- data_2024 %>%
     group_by(exercise_name) %>%
-    mutate(cummax_1RM = cummax(one_rep_max)) %>%
+    mutate(
+      cummax_1RM = cummax(one_rep_max),
+      goal = goals_list[exercise_name]
+      ) %>%
     ungroup()
 
   # Normalize progress
   normalized_data <- data_2024 %>%
     mutate(
-      progress = (cummax_1RM - baseline_1RM) / (goals_list[exercise_name] - baseline_1RM)
+      progress = (cummax_1RM - baseline_1RM) / (goal - baseline_1RM)
     ) %>%
     group_by(exercise_name, date) %>%
     filter(format(date, "%Y") == "2024" & one_rep_max >= max(one_rep_max))
@@ -56,8 +59,8 @@ plot_goals_weightlifting <- function(weightlifting_data, goals_list=goals_list_2
     geom_point() +
     geom_line() +
     geom_hline(yintercept = 1, linetype = "dashed") +  # Goal line
-    scale_y_continuous(labels = scales::percent_format()) +
-    labs(x = "Date in 2024", y = "Progress towards Goal (%)", colour = "Exercise") +
+    scale_y_continuous(name = "Progress towards goal (%)", labels = scales::percent_format()) +
+    labs(colour = "Exercise") +
     theme_minimal() +
     scale_x_date(
       name = "Date",
