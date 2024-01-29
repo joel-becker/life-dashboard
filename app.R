@@ -144,7 +144,7 @@ ui <- dashboardPage(
                 "Visit ",
                 a("my website", href = "https://joel-becker.com", target = "_blank"),
                 " or the ",
-                a("code for this project", href = "", target = "_blank"),
+                a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
                 "."
               )
             )
@@ -259,7 +259,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
@@ -327,7 +327,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
@@ -361,7 +361,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
