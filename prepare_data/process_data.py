@@ -136,7 +136,7 @@ class HealthDataProcessor:
         non_soccer_cardio = workout_data[workout_data['type'].isin([
             'Running', 'Swimming', 'Cycling',
             'Hiking', 'StairClimbing', 'CardioDance',
-            'Rowing'])]
+            'Rowing', 'Other', 'Cooldown', 'Yoga'])]
 
         # TODO: Define criteria for cooldown sessions
 

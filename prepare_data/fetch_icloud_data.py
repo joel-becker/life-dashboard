@@ -335,7 +335,7 @@ class iCloudDataFetcher:
         - Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame] or None:
           A tuple containing DataFrames for main symptoms, custom entries, and custom symptoms if successful, None otherwise.
         """
-        zip_data = self.fetch_zip_data("eMoods-2024-Jan.zip")
+        zip_data = self.fetch_zip_data("eMoods-2024-Feb.zip")
         if zip_data is not None:
             try:
                 unzipped_data = self.unpack_zip(zip_data)
