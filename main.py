@@ -41,6 +41,7 @@ def main():
     apple_data_workouts = hdp.process_workout_data(apple_health_data_workouts)
     exercise_data = edp.clean_exercise_data(strong_data)
     mental_health_data = mhp.wrangle_mental_health_data()
+    non_exercise_goal_data = mhp.wrangle_non_exercise_goal_data()
 
     # processed_data = hdp.join_dates(processed_data)
     weight_data = wdp.wrangle_weight_data(apple_data_records)
@@ -54,6 +55,7 @@ def main():
     save_to_csv(weight_data, filename="weight_data", folder="./data/")
     save_to_csv(weightlifting_data, filename="weightlifting_data", folder="./data/")
     save_to_csv(mental_health_data, filename="mental_health_data", folder="./data/")
+    save_to_csv(mental_health_data, filename="non_exercise_goal_data", folder="./data/")
     save_to_csv(volume_data, filename="volume_data", folder="./data/")
 
 

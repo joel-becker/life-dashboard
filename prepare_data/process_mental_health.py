@@ -168,7 +168,13 @@ class MentalHealthDataProcessor:
             ("exploring Paris for hours", 4.5),
             ("party with Arden", 4.0),
             ("Harry and Sophie's wedding", 4.5),
-            ("ESPR house party in north London", 4.0)
+            ("ESPR house party in north London", 4.0),
+            ("pro-social start-up ideas", 4.0),
+            ("energized at Ryan's disney character party", 4.5),
+            ("Momentum hot tub party", 4.0),
+            ("dancing at Constance", 4.5),
+            ("coffee with Richard", 4.0),
+            ("bizarre, hilarious, and deeply aspirational theatre", 5.0)
             # Add more conditions as needed
         ]
 
@@ -445,4 +451,17 @@ class MentalHealthDataProcessor:
         data = self.add_scores_to_exceptional_days(data)
         data = self.calculate_mental_health_metrics(data)
         data = self.reshape_to_tidy_format(data)
+        return data
+    
+    def wrangle_non_exercise_goal_data(self):
+        data = self.merge_data()
+        data = self.clean_merged_data(data)
+        data = data[
+            'date', 
+            'asked_how_friends_are',
+            'energizing_personal_interactions',
+            'energizing_professional_interactions', 
+            'energizing_romantic_interactions', 
+            'floss'
+            ]
         return data
