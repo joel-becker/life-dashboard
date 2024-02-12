@@ -51,12 +51,12 @@ def main():
     volume_data = vdp.process_volume_data()
 
     # Save or update data for RShiny to use
-    save_to_csv(apple_data_workouts, filename="non_weightlifting_exercise_data", folder="./data/")
-    save_to_csv(weight_data, filename="weight_data", folder="./data/")
-    save_to_csv(weightlifting_data, filename="weightlifting_data", folder="./data/")
-    save_to_csv(mental_health_data, filename="mental_health_data", folder="./data/")
-    save_to_csv(mental_health_data, filename="non_exercise_goal_data", folder="./data/")
-    save_to_csv(volume_data, filename="volume_data", folder="./data/")
+    save_to_csv(apple_data_workouts, filename="non_weightlifting_exercise", folder="./data/")
+    save_to_csv(weight_data, filename="weight", folder="./data/")
+    save_to_csv(weightlifting_data, filename="weightlifting", folder="./data/")
+    save_to_csv(mental_health_data, filename="mental_health", folder="./data/")
+    save_to_csv(mental_health_data, filename="non_exercise_goal", folder="./data/")
+    save_to_csv(volume_data, filename="volume", folder="./data/")
 
 
 if __name__ == "__main__":

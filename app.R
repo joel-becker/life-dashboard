@@ -33,12 +33,12 @@ source("app_functions/utilities_UI.R")
 options(shiny.autoreload = TRUE)
 
 # Load data
-weightlifting_data <- read_csv("data/weightlifting_data.csv") %>% 
+weightlifting_data <- read_csv("data/weightlifting.csv") %>% 
   mutate(date = as.Date(date))
 classification_data <- read_csv("data/exercise_classifications.csv")
-mentalhealth_data <- read_csv("data/mental_health_data.csv")
-volume_data <- read_csv("data/volume_data.csv")
-non_weightlifting_data <- read_csv("data/non_weightlifting_exercise_data.csv")
+mentalhealth_data <- read_csv("data/mental_health.csv")
+volume_data <- read_csv("data/volume.csv")
+non_weightlifting_data <- read_csv("data/non_weightlifting_exercise.csv")
 
 # Function to merge classification data with weightlifting data
 merge_classification <- function(weightlifting_data, classification_path) {
