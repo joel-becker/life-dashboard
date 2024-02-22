@@ -456,12 +456,14 @@ class MentalHealthDataProcessor:
     def wrangle_non_exercise_goal_data(self):
         data = self.merge_data()
         data = self.clean_merged_data(data)
-        data = data[
+        goal_columns = [
             'date', 
             'asked_how_friends_are',
             'energizing_personal_interactions',
             'energizing_professional_interactions', 
-            'energizing_romantic_interactions', 
             'floss'
             ]
+        data = data[goal_columns]
+        for col in data.columns[1:]:
+            data[col] = data[col] - 1.0
         return data
