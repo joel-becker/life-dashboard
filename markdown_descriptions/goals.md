@@ -1,0 +1,1 @@
+See my 2024 goals (and associated forecasts) [here](https://manifold.markets/JoelBecker/which-of-my-2024-health-goals-will) and [here](https://manifold.markets/JoelBecker/which-of-my-2024-nonhealth-goals-wi).

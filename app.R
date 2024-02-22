@@ -4,6 +4,8 @@ library(shinydashboard)
 library(tidyverse)
 library(zoo)
 library(ggplot2)
+library(lubridate)
+library(rlang)
 library(plotly)
 library(shinycssloaders)
 library(shinyBS)
@@ -25,17 +27,21 @@ source("app_functions/plot_heat_map.R")
 source("app_functions/plot_volume_over_time.R")
 source("app_functions/plot_mental_health.R")
 source("app_functions/plot_goals_weightlifting.R")
+source("app_functions/plot_goals_non_weightlifting.R")
+source("app_functions/plot_goals_non_exercise.R")
 source("app_functions/utilities_UI.R")
 
 # Reload upon saving
 options(shiny.autoreload = TRUE)
 
 # Load data
-weightlifting_data <- read_csv("data/weightlifting_data.csv") %>% 
+weightlifting_data <- read_csv("data/weightlifting.csv") %>% 
   mutate(date = as.Date(date))
 classification_data <- read_csv("data/exercise_classifications.csv")
-mentalhealth_data <- read_csv("data/mental_health_data.csv")
-volume_data <- read_csv("data/volume_data.csv")
+mentalhealth_data <- read_csv("data/mental_health.csv")
+volume_data <- read_csv("data/volume.csv")
+non_weightlifting_data <- read_csv("data/non_weightlifting_exercise.csv")
+non_exercise_data <- read_csv("data/non_exercise_goal.csv")
 
 # Function to merge classification data with weightlifting data
 merge_classification <- function(weightlifting_data, classification_path) {
@@ -98,7 +104,7 @@ ui <- dashboardPage(
                       sorting_metric = n / (60 + days_since_last)
                       ) %>%
                     ungroup() %>%
-                    filter(n >= 100) %>%
+                    filter(n >= 50 & days_since_last <= 1000) %>%
                     arrange(desc(sorting_metric)) %>%
                     pull(exercise_name) %>%
                     unique(),
@@ -141,7 +147,7 @@ ui <- dashboardPage(
                 "Visit ",
                 a("my website", href = "https://joel-becker.com", target = "_blank"),
                 " or the ",
-                a("code for this project", href = "", target = "_blank"),
+                a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
                 "."
               )
             )
@@ -256,7 +262,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
@@ -324,7 +330,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
@@ -334,8 +340,26 @@ ui <- dashboardPage(
       tabItem(tabName = "goals",
         fluidRow(
           box(
-            title = "Weightlifting Goals", width = 8, solidHeader = TRUE, status = "primary",
+              title = "Description", 
+              width = 12, 
+              solidHeader = FALSE, 
+              status = "info",
+              closable = TRUE,
+              collapsible = TRUE,
+              collapsed = TRUE,
+              includeMarkdown("markdown_descriptions/goals.md")
+          ),
+          box(
+            title = "Weightlifting Goals", width = 12, solidHeader = TRUE, status = "primary",
             plotOutput("goals_weightlifting") %>% withSpinner()
+          ),
+          box(
+            title = "Non-Weightlifting Exercise Goals", width = 6, solidHeader = TRUE, status = "primary",
+            plotOutput("goals_non_weightlifting") %>% withSpinner()
+          ),
+          box(
+            title = "Non-Exercise Goals", width = 6, solidHeader = TRUE, status = "primary",
+            plotOutput("goals_non_exercise") %>% withSpinner()
           ),
         ),
         tags$footer(
@@ -344,7 +368,7 @@ ui <- dashboardPage(
               "Visit ",
               a("my website", href = "https://joel-becker.com", target = "_blank"),
               " or the ",
-              a("code for this project", href = "", target = "_blank"),
+              a("code for this project", href = "https://github.com/joel-becker/life-dashboard", target = "_blank"),
               "."
             )
           )
@@ -412,11 +436,27 @@ server <- function(input, output, session) {
 
   # Output for goals plot
   output$goals_weightlifting <- renderPlot({
-    plot_goals <- plot_goals_weightlifting(
+    plot_goals_weightlifting <- plot_goals_weightlifting(
       weightlifting_data
     )
 
-    plot_goals
+    plot_goals_weightlifting
+  })
+
+  output$goals_non_weightlifting <- renderPlot({
+    plot_goals_non_weightlifting <- plot_goals_non_weightlifting(
+      non_weightlifting_data
+    )
+
+    plot_goals_non_weightlifting
+  })
+
+  output$goals_non_exercise <- renderPlot({
+    plot_goals_non_exercise <- plot_goals_non_exercise(
+      non_exercise_data
+    )
+
+    plot_goals_non_exercise
   })
 }
 

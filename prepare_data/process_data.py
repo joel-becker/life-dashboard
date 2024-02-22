@@ -126,8 +126,8 @@ class HealthDataProcessor:
         workout_data['startdate'] = pd.to_datetime(workout_data['startdate'])
         workout_data['enddate'] = pd.to_datetime(workout_data['enddate'])
 
-        workout_data['workoutactivitytype'] = workout_data['workoutactivitytype'].str.replace('hkworkoutactivitytype', '')
-        workout_data = workout_data.rename({"workoutactivitytype": "Type"}, axis=1)
+        workout_data['workoutactivitytype'] = workout_data['workoutactivitytype'].str.replace('HKWorkoutActivityType', '')
+        workout_data = workout_data.rename({"workoutactivitytype": "type"}, axis=1)
 
         workout_data['duration'] = pd.to_numeric(workout_data['duration'], errors='coerce')
 
@@ -136,7 +136,7 @@ class HealthDataProcessor:
         non_soccer_cardio = workout_data[workout_data['type'].isin([
             'Running', 'Swimming', 'Cycling',
             'Hiking', 'StairClimbing', 'CardioDance',
-            'Rowing'])]
+            'Rowing', 'Other', 'Cooldown', 'Yoga'])]
 
         # TODO: Define criteria for cooldown sessions
 
@@ -210,10 +210,11 @@ class HealthDataProcessor:
         Returns:
         - pd.DataFrame: Processed workout data.
         """
-        cleaned_data = self.clean_workout_data(data)
-        filtered_data = self.filter_workout_data(cleaned_data)
+        cleaned_data = self.extract_workout_data(data)
+        #filtered_data = self.filter_workout_data(cleaned_data)
 
-        return filtered_data
+        #return filtered_data
+        return cleaned_data
 
 class WeightDataProcessor:
     def __init__(
