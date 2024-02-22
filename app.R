@@ -5,6 +5,7 @@ library(tidyverse)
 library(zoo)
 library(ggplot2)
 library(lubridate)
+library(rlang)
 library(plotly)
 library(shinycssloaders)
 library(shinyBS)
@@ -27,6 +28,7 @@ source("app_functions/plot_volume_over_time.R")
 source("app_functions/plot_mental_health.R")
 source("app_functions/plot_goals_weightlifting.R")
 source("app_functions/plot_goals_non_weightlifting.R")
+source("app_functions/plot_goals_non_exercise.R")
 source("app_functions/utilities_UI.R")
 
 # Reload upon saving
@@ -39,6 +41,7 @@ classification_data <- read_csv("data/exercise_classifications.csv")
 mentalhealth_data <- read_csv("data/mental_health.csv")
 volume_data <- read_csv("data/volume.csv")
 non_weightlifting_data <- read_csv("data/non_weightlifting_exercise.csv")
+non_exercise_data <- read_csv("data/non_exercise_goal.csv")
 
 # Function to merge classification data with weightlifting data
 merge_classification <- function(weightlifting_data, classification_path) {
@@ -347,12 +350,16 @@ ui <- dashboardPage(
               includeMarkdown("markdown_descriptions/goals.md")
           ),
           box(
-            title = "Weightlifting Goals", width = 6, solidHeader = TRUE, status = "primary",
+            title = "Weightlifting Goals", width = 12, solidHeader = TRUE, status = "primary",
             plotOutput("goals_weightlifting") %>% withSpinner()
           ),
           box(
             title = "Non-Weightlifting Exercise Goals", width = 6, solidHeader = TRUE, status = "primary",
             plotOutput("goals_non_weightlifting") %>% withSpinner()
+          ),
+          box(
+            title = "Non-Exercise Goals", width = 6, solidHeader = TRUE, status = "primary",
+            plotOutput("goals_non_exercise") %>% withSpinner()
           ),
         ),
         tags$footer(
@@ -442,6 +449,14 @@ server <- function(input, output, session) {
     )
 
     plot_goals_non_weightlifting
+  })
+
+  output$goals_non_exercise <- renderPlot({
+    plot_goals_non_exercise <- plot_goals_non_exercise(
+      non_exercise_data
+    )
+
+    plot_goals_non_exercise
   })
 }
 
